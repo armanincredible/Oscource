@@ -34,6 +34,11 @@ static struct Command commands[] = {
 };
 #define NCOMMANDS (sizeof(commands) / sizeof(commands[0]))
 
+void print_my_text ()
+{
+    cprintf("Hello Im young JETOSER\n");
+}
+
 /* Implementations of basic kernel monitor commands */
 
 int
@@ -60,6 +65,19 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf) {
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf) {
     // LAB 2: Your code here
+    uint64_t rbp = read_rbp();
+    uint64_t rip = read_rip();
+    struct Ripdebuginfo info = {};
+    cprintf ("Stack backtrace:\n");
+
+    while (rbp)
+    {
+        cprintf ("  rpb %lx  rip %lx\n", rbp, rip);
+        debuginfo_rip(rip, &info);
+        cprintf ("    %s:%d: %s+%ld\n", info.rip_file, info.rip_line, info.rip_fn_name, rip - info.rip_fn_addr);
+        rip = *((uint64_t*)rbp + 1);
+        rbp = *((uint64_t*)rbp);
+    }
 
     return 0;
 }

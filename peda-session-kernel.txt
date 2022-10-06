@@ -1,2 +1,2 @@
-break *0x000000000000fffc
+break entry
 
