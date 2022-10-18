@@ -107,5 +107,38 @@ find_function(const char *const fname) {
 
     // LAB 3: Your code here:
 
+    struct Dwarf_Addrs addrs = {};
+    load_kernel_dwarf_info(&addrs);
+    uintptr_t offset = 0;
+
+    if (!address_by_fname(&addrs, fname, &offset) && offset) 
+    {
+        return offset;
+    }
+
+    if (!naive_address_by_fname(&addrs, fname, &offset) && offset) 
+    {
+        return offset;
+    }
+
+    struct Elf64_Sym *syms = (struct Elf64_Sym *)uefi_lp->SymbolTableStart;
+    size_t num_syms =  (uefi_lp->SymbolTableEnd - uefi_lp->SymbolTableStart) / sizeof (*syms);
+    const char* str_tab = (char*) uefi_lp->StringTableStart;
+    size_t size_str_tab = (char*)uefi_lp->StringTableEnd - str_tab;
+
+    for (size_t i = 0; i < num_syms; i++) 
+    {
+        if (ELF64_ST_BIND(syms[i].st_info) == STB_GLOBAL &&
+            ELF64_ST_TYPE(syms[i].st_info) == STT_FUNC)
+        {
+            const char *name = str_tab + syms[i].st_name;
+            //cprintf ("%s\n", name);
+            if (!strncmp (name, fname, size_str_tab))
+            {
+                //cprintf ("%s - %lx\n", name, syms[i].st_value);
+                return syms[i].st_value;
+            }
+        }
+    }
     return 0;
 }

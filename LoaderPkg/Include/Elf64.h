@@ -112,6 +112,7 @@ struct Elf64_Sym {
 #define ELF32_ST_TYPE(x)        ELF_ST_TYPE(x)
 #define ELF64_ST_BIND(x)        ELF_ST_BIND(x)
 #define ELF64_ST_TYPE(x)        ELF_ST_TYPE(x)
+#define ELF64_ST_INFO(bind, type)    (((bind)<<4)+((type)&0xf))
 
 #define ET_NONE         0
 #define ET_REL          1
