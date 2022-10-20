@@ -212,6 +212,7 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
         {
             syms = (struct Elf64_Sym *)(binary + sh[i].sh_offset);
             num_syms = sh[i].sh_size / sizeof(*syms);
+            break;
         }
     }
 
@@ -298,24 +299,26 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     UINT64 MinAddress = ~0ULL;   ///< Physical address min (-1 wraps around to max 64-bit number).
     UINT64 MaxAddress = 0;       ///< Physical address max.
 
-    for (int Index = 0; Index < ElfHeader->e_phnum; ++Index) {
-      if (ProgramHeaders[Index].p_type == PT_LOAD) {
-        MinAddress = MinAddress < ProgramHeaders[Index].p_va
-          ? MinAddress : ProgramHeaders[Index].p_va;
-        MaxAddress = (MaxAddress > ProgramHeaders[Index].p_va + ProgramHeaders[Index].p_memsz)
-          ? MaxAddress : ProgramHeaders[Index].p_va + ProgramHeaders[Index].p_memsz;
-      }
-    }
-
     for (int header_index = 0; header_index < ElfHeader->e_phnum; header_index++)
     {
-        if (ProgramHeaders[header_index].p_type == ELF_PROG_LOAD && 
-            ProgramHeaders[header_index].p_filesz > 0)
+        struct Proghdr *cur_header = ProgramHeaders + header_index;
+        if (cur_header->p_type == ELF_PROG_LOAD)
         {   
-            memcpy((void*)(ProgramHeaders[header_index].p_va), binary + ProgramHeaders[header_index].p_offset, 
-                    ProgramHeaders[header_index].p_filesz);
-            memset((void*)ProgramHeaders[header_index].p_va + ProgramHeaders[header_index].p_filesz, 0, 
-                    ProgramHeaders[header_index].p_memsz - ProgramHeaders[header_index].p_filesz);
+            memcpy((void*)(cur_header->p_va), binary + cur_header->p_offset, 
+                    cur_header->p_filesz);
+
+            if (cur_header->p_filesz < cur_header->p_memsz)
+            {
+                memset((void*)cur_header->p_va + cur_header->p_filesz, 0, 
+                    cur_header->p_memsz - cur_header->p_filesz);
+            }
+        }
+        if (cur_header->p_type == PT_LOAD) 
+        {
+            MinAddress = MinAddress < cur_header->p_va
+            ? MinAddress : cur_header->p_va;
+            MaxAddress = (MaxAddress > cur_header->p_va + cur_header->p_memsz)
+            ? MaxAddress : cur_header->p_va + cur_header->p_memsz;
         }
     }
     env->env_tf.tf_rip = ElfHeader->e_entry;

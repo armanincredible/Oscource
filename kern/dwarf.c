@@ -572,12 +572,11 @@ address_by_fname(const struct Dwarf_Addrs *addrs, const char *fname, uintptr_t *
                         abbrev_entry += dwarf_read_uleb128(abbrev_entry, &form);
                         if (name == DW_AT_low_pc) {
                             entry += dwarf_read_abbrev_entry(entry, form, &low_pc, sizeof(low_pc), address_size);
-                            *offset = low_pc;
-                            return 0;
                         } 
                         else
                             entry += dwarf_read_abbrev_entry(entry, form, NULL, 0, address_size);
                     } while (name || form);
+                    *offset = low_pc;
                 } else {
                     /* Skip if not a subprogram or label */
                     do {
