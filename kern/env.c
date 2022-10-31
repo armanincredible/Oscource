@@ -189,13 +189,47 @@ env_alloc(struct Env **newenv_store, envid_t parent_id, enum EnvType type) {
 static int
 bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_start, uintptr_t image_end) {
     // LAB 3: Your code here:
+    if (sizeof(struct Elf) > size)
+    {
+        return -E_INVAL;
+    }
     struct Elf *elf    = (struct Elf *)binary;
+    if (elf->e_shoff >= size)
+    {
+        return -E_INVAL;
+    }
     struct Secthdr *sh = (struct Secthdr *)(binary + elf->e_shoff);
+    if (elf->e_shstrndx >= (size - ((uint8_t*) sh - binary)) / sizeof(*sh))
+    {
+        return -E_INVAL;
+    }
+
+    if (sh[elf->e_shstrndx].sh_offset >= size)
+    {
+        return -E_INVAL;
+    }
     const char *shstr  = (char *)binary + sh[elf->e_shstrndx].sh_offset;
+
     char *str_tab = NULL;
+    if (elf->e_shnum - 1 >= (size - ((uint8_t*) sh - binary)) / sizeof(*sh))
+    {
+        return -E_INVAL;
+    }
 
     for (size_t i = 0; i < elf->e_shnum; i++) 
     {
+        if (sh[i].sh_name > sh[elf->e_shstrndx].sh_size)
+        {
+            return -E_INVAL;
+        }
+        if (sh[elf->e_shstrndx].sh_size >= 8 && sh[i].sh_name > sh[elf->e_shstrndx].sh_size - 8)
+        {
+            return -E_INVAL;
+        }
+        if (sh[i].sh_offset >= size)
+        {
+            return -E_INVAL;
+        }
         if (sh[i].sh_type == ELF_SHT_STRTAB && !strcmp(".strtab", shstr + sh[i].sh_name)) 
         {
             str_tab = (char *)binary + sh[i].sh_offset;
@@ -323,7 +357,11 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     }
     env->env_tf.tf_rip = ElfHeader->e_entry;
 
-    bind_functions (env, binary, size, MinAddress, MaxAddress);
+    int err = bind_functions (env, binary, size, MinAddress, MaxAddress);
+    if (err)
+    {
+        panic("load_icode: %i", err);
+    }
 
     return 0;
 }
