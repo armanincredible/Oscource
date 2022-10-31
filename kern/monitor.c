@@ -88,6 +88,17 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf) {
 
 int
 mon_dumpcmos(int argc, char **argv, struct Trapframe *tf) {
+
+    for (unsigned int i = 0; i < 128; i++)
+    {
+        if (i % 16 == 0)
+        {
+            cprintf ("\n%lx:", i);
+        }
+        uint8_t data = cmos_read8 (i);
+        cprintf (" %lx", data);
+    }
+    cprintf ("\n");
     // Dump CMOS memory in the following format:
     // 00: 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF
     // 10: 00 ..
