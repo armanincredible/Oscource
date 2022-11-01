@@ -93,10 +93,10 @@ mon_dumpcmos(int argc, char **argv, struct Trapframe *tf) {
     {
         if (i % 16 == 0)
         {
-            cprintf ("\n%lx:", i);
+            cprintf ("\n%x:", i);
         }
         uint8_t data = cmos_read8 (i);
-        cprintf (" %lx", data);
+        cprintf (" %x", data);
     }
     cprintf ("\n");
     // Dump CMOS memory in the following format:

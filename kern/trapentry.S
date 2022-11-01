@@ -12,6 +12,7 @@
 .globl clock_thdlr
 .type clock_thdlr, @function
 clock_thdlr:
+    cli
     call save_trapframe_trap
     # Set trap code for trapframe
     movl $(IRQ_OFFSET + IRQ_CLOCK), 136(%rsp)

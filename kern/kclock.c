@@ -49,7 +49,6 @@ rtc_timer_pic_interrupt(void) {
 
 void
 rtc_timer_pic_handle(void) {
-    cprintf ("here\n");
     rtc_check_status();
     pic_send_eoi(IRQ_CLOCK);
 }
@@ -62,16 +61,11 @@ rtc_timer_init(void) {
     val |=  RTC_PIE;
     cmos_write8(RTC_BREG, val);
 
-    //val = cmos_read8(RTC_AREG);
-    //uint8_t rate = RTC_NON_RATE_MASK(14);
-    //cmos_write8 (RTC_AREG, RTC_SET_NEW_RATE(val, rate));
+    val = cmos_read8(RTC_AREG);
+    uint8_t rate = 15;
+    cmos_write8 (RTC_AREG, RTC_SET_NEW_RATE(val, rate));
 
-    /*val = rtc_check_status ();
-    if (!(val & RTC_PIE))
-    {
-        cprintf ("\n\n\ndsds\n");
-    }*/
-    rtc_check_status ();
+    val = rtc_check_status ();
     nmi_enable();
     // LAB 4: Your code here
     // (use cmos_read8/cmos_write8)

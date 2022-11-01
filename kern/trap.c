@@ -95,9 +95,9 @@ trapname(int trapno) {
 void
 trap_init(void) {
     // LAB 4: Your code here
-    //extern void (*clock_thdlr)(void);
-    //struct Gatedesc* clock_gate = idt + IRQ_CLOCK + IRQ_OFFSET;
-    idt[IRQ_CLOCK + IRQ_OFFSET] = GATE(0, GD_KT, (uintptr_t)(rtc_timer_pic_handle), 0);
+
+    extern void (*clock_thdlr)(void);
+    idt[IRQ_CLOCK + IRQ_OFFSET] = GATE(0, GD_KT, (uintptr_t)(&clock_thdlr), 0);
 
     /* Per-CPU setup */
     trap_init_percpu();
@@ -262,6 +262,8 @@ trap(struct Trapframe *tf) {
     /* If we made it to this point, then no other environment was
      * scheduled, so we should return to the current environment
      * if doing so makes sense */
+    rtc_timer_pic_handle();
+    
     if (curenv && curenv->env_status == ENV_RUNNING)
         env_run(curenv);
     else
