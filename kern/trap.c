@@ -214,7 +214,8 @@ trap_dispatch(struct Trapframe *tf) {
         }
         return;
     case IRQ_OFFSET + IRQ_CLOCK:
-        // LAB 4: Your code here
+        rtc_timer_pic_handle();
+        sched_yield();
         return;
     default:
         print_trapframe(tf);
@@ -262,8 +263,7 @@ trap(struct Trapframe *tf) {
     /* If we made it to this point, then no other environment was
      * scheduled, so we should return to the current environment
      * if doing so makes sense */
-    rtc_timer_pic_handle();
-    
+
     if (curenv && curenv->env_status == ENV_RUNNING)
         env_run(curenv);
     else
