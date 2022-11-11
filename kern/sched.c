@@ -10,7 +10,7 @@ _Noreturn void sched_halt(void);
 /* Choose a user environment to run and run it */
 _Noreturn void
 sched_yield(void) {
-
+    //cprintf("in yield\n");
     if (!curenv)
     {
         env_run(envs);

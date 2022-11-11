@@ -179,7 +179,8 @@ i386_init(void) {
 #endif
 
     /* Schedule and run the first user environment! */
-    sched_yield();
+    //sched_yield();
+    monitor(NULL);
 }
 
 /* Variable panicstr contains argument to first call to panic; used as flag
