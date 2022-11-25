@@ -221,6 +221,7 @@ trap_dispatch(struct Trapframe *tf) {
     case IRQ_OFFSET + IRQ_TIMER:
         hpet_handle_interrupts_tim0();
         sched_yield();
+        return;
     case IRQ_OFFSET + IRQ_CLOCK:
         hpet_handle_interrupts_tim1();
         sched_yield();
