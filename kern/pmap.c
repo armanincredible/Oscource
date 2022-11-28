@@ -82,6 +82,9 @@ list_init(struct List *list) {
  */
 inline static void __attribute__((always_inline))
 list_append(struct List *list, struct List *new) {
+    new->next = list->next;
+    list->next = new;
+    new->prev = list;
     // LAB 6: Your code here
 }
 
@@ -91,6 +94,11 @@ list_append(struct List *list, struct List *new) {
  */
 inline static struct List *__attribute__((always_inline))
 list_del(struct List *list) {
+
+    list->next->prev = list->prev;
+    list->prev->next = list->next;
+
+    list_init(list);
     // LAB 6: Your code here.
 
     return list;
@@ -172,9 +180,14 @@ alloc_child(struct Page *parent, bool right) {
     assert_physical(parent);
     assert(parent);
 
-    // LAB 6: Your code here
-
-    struct Page *new = NULL;
+    struct Page* new = alloc_descriptor (parent->state);
+    
+    if (right){
+        parent->right = new;
+    }
+    else{
+        parent->left = new;
+    }
 
     return new;
 }
@@ -321,10 +334,15 @@ attach_region(uintptr_t start, uintptr_t end, enum PageState type) {
     if (trace_memory_more) cprintf("Attaching memory region [%08lX, %08lX] with type %d\n", start, end - 1, type);
     int class = 0, res = 0;
 
-    (void)class; (void)res;
+    //(void)class; (void)res;
+    
+    for (class = POOL_CLASS; end >= start + (long)CLASS_MASK(class) || class < MAX_CLASS; class++)
+    {}
 
-    start = ROUNDDOWN(start, CLASS_SIZE(0));
-    end = ROUNDUP(end, CLASS_SIZE(0));
+    //start = ROUNDDOWN(start, CLASS_SIZE(0));
+    //end = ROUNDUP(end, CLASS_SIZE(0));
+    //page2pa(new), page2pa(new) + (long)CLASS_MASK(new->class), new->class
+    page_lookup(NULL, start, class, type, 1);
 
     // LAB 6: Your code here
 }
@@ -533,6 +551,8 @@ detect_memory(void) {
 
     /* Attach first page as reserved memory */
     // LAB 6: Your code here
+    attach_region((void *)PADDR(&root), (void *)PADDR(&root) + sizeof(struct Page), RESERVED_NODE);
+    attach_region(IOPHYSMEM, EXTPHYSMEM, RESERVED_NODE);
 
     /* Attach kernel and old IO memory
      * (from IOPHYSMEM to the physical address of end label. end points the the
@@ -562,6 +582,7 @@ detect_memory(void) {
             /* Attach memory described by memory map entry described by start
              * of type type*/
             // LAB 6: Your code here
+            attach_region(start, end, type);
 
 
 
