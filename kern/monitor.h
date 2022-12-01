@@ -10,7 +10,7 @@ struct Trapframe;
  * optionally providing a trap frame indicating the current state
  * (NULL if none) */
 void monitor(struct Trapframe *tf);
-void print_my_text ();
+int print_my_text (int argc, char **argv, struct Trapframe *tf);
 int mon_backtrace(int argc, char **argv, struct Trapframe *tf);
 int mon_start(int argc, char **argv, struct Trapframe *tf);
 int mon_stop(int argc, char **argv, struct Trapframe *tf);

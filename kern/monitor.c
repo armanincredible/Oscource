@@ -45,13 +45,15 @@ static struct Command commands[] = {
         {"timer_stop", "Print time since start and stop current timer", mon_stop},
         {"timer_start", "Start timer with name is typed by user", mon_start},
         {"timer_cpu_frequency", "Print cpu frequency what measured by typed timer", mon_frequency},
-        {"my_text", "print text of developer", print_my_text}
+        {"my_text", "print text of developer", print_my_text},
+        {"memory", "show information about memory", mon_memory}
 };
 #define NCOMMANDS (sizeof(commands) / sizeof(commands[0]))
 
-void print_my_text (int argc, char **argv, struct Trapframe *tf)
+int print_my_text (int argc, char **argv, struct Trapframe *tf)
 {
     cprintf("Hello Im young JETOSER\n");
+    return 0;
 }
 
 /* Implementations of basic kernel monitor commands */
@@ -152,6 +154,12 @@ int mon_frequency(int argc, char **argv, struct Trapframe *tf)
  * This command should call dump_memory_lists()
  */
 // LAB 6: Your code here
+
+int mon_memory(int argc, char **argv, struct Trapframe *tf)
+{
+    dump_memory_lists();
+    return 0;
+}
 
 /* Kernel monitor command interpreter */
 

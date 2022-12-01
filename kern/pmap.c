@@ -82,9 +82,11 @@ list_init(struct List *list) {
  */
 inline static void __attribute__((always_inline))
 list_append(struct List *list, struct List *new) {
-    new->next = list->next;
-    list->next = new;
     new->prev = list;
+    new->next = list->next;
+
+    list->next->prev = new;
+    list->next = new;
     // LAB 6: Your code here
 }
 
@@ -181,11 +183,24 @@ alloc_child(struct Page *parent, bool right) {
     assert(parent);
 
     struct Page* new = alloc_descriptor (parent->state);
+
+    new->left = NULL;
+    new->right = NULL;
+    new->parent = parent;
+    new->state = parent->state;
+
+    if (parent->refc){
+        new->refc = 1;
+    }
+
+    new->class = parent->class - 1;
     
     if (right){
+        new->addr = parent->addr + (1ULL << (parent->class - 1));
         parent->right = new;
     }
     else{
+        new->addr = parent->addr;
         parent->left = new;
     }
 
@@ -332,17 +347,36 @@ page_unref(struct Page *page) {
 static void
 attach_region(uintptr_t start, uintptr_t end, enum PageState type) {
     if (trace_memory_more) cprintf("Attaching memory region [%08lX, %08lX] with type %d\n", start, end - 1, type);
-    int class = 0, res = 0;
+    int class = 0;
 
     //(void)class; (void)res;
-    
-    for (class = POOL_CLASS; end >= start + (long)CLASS_MASK(class) || class < MAX_CLASS; class++)
-    {}
+    start = ROUNDDOWN(start, CLASS_SIZE(0));
+    end = ROUNDUP(end, CLASS_SIZE(0));
 
-    //start = ROUNDDOWN(start, CLASS_SIZE(0));
-    //end = ROUNDUP(end, CLASS_SIZE(0));
-    //page2pa(new), page2pa(new) + (long)CLASS_MASK(new->class), new->class
-    page_lookup(NULL, start, class, type, 1);
+    while (start < end)
+    {   
+        class = 0;
+        while (class < MAX_CLASS)
+        {
+            if (start & CLASS_MASK(class))
+            {
+                break;
+            }
+            class++;
+        }
+        class--;
+
+        while (start + (long)CLASS_SIZE(class) > end)
+        {
+            class--;
+        }
+
+        //cprintf ("\tstart and end [%08lX, %08lX] class = %d\n", start, end, class);
+        page_lookup(NULL, start, class, type, 1);
+
+        start += CLASS_SIZE(class);
+    }
+
 
     // LAB 6: Your code here
 }
@@ -455,7 +489,17 @@ dump_virtual_tree(struct Page *node, int class) {
 void
 dump_memory_lists(void) {
     // LAB 6: Your code here
-
+    
+    struct List* li = NULL;
+    for (int pclass = 0; pclass < MAX_CLASS; pclass++, li = NULL) {
+        cprintf("class = %d:\n", pclass);
+        for (li = free_classes[pclass].next; li != &free_classes[pclass]; li = li->next)
+        {
+            struct Page *peer = (struct Page *)li;
+            cprintf ("\t physical_addr = %016lX, virtual_addr = %p, state = %d, refc = %d, class = %d\n", 
+                         page2pa(peer), peer, peer->state, peer->refc, peer->class);
+        }
+    }
 }
 
 /*
@@ -551,8 +595,8 @@ detect_memory(void) {
 
     /* Attach first page as reserved memory */
     // LAB 6: Your code here
-    attach_region((void *)PADDR(&root), (void *)PADDR(&root) + sizeof(struct Page), RESERVED_NODE);
-    attach_region(IOPHYSMEM, EXTPHYSMEM, RESERVED_NODE);
+
+    attach_region(0, PAGE_SIZE, RESERVED_NODE);
 
     /* Attach kernel and old IO memory
      * (from IOPHYSMEM to the physical address of end label. end points the the
@@ -561,32 +605,40 @@ detect_memory(void) {
 
     /* Detech memory via ether UEFI or CMOS */
     if (uefi_lp && uefi_lp->MemoryMap) {
-        EFI_MEMORY_DESCRIPTOR *start = (void *)uefi_lp->MemoryMap;
-        EFI_MEMORY_DESCRIPTOR *end = (void *)(uefi_lp->MemoryMap + uefi_lp->MemoryMapSize);
-        while (start < end) {
+        EFI_MEMORY_DESCRIPTOR *start_efi = (void *)uefi_lp->MemoryMap;
+        EFI_MEMORY_DESCRIPTOR *end_efi = (void *)(uefi_lp->MemoryMap + uefi_lp->MemoryMapSize);
+        while (start_efi < end_efi) {
             enum PageState type;
-            switch (start->Type) {
+            switch (start_efi->Type) {
             case EFI_LOADER_CODE:
             case EFI_LOADER_DATA:
             case EFI_BOOT_SERVICES_CODE:
             case EFI_BOOT_SERVICES_DATA:
             case EFI_CONVENTIONAL_MEMORY:
-                type = start->Attribute & EFI_MEMORY_WB ? ALLOCATABLE_NODE : RESERVED_NODE;
+                type = start_efi->Attribute & EFI_MEMORY_WB ? ALLOCATABLE_NODE : RESERVED_NODE;
                 break;
             default:
                 type = RESERVED_NODE;
             }
 
-            max_memory_map_addr = MAX(start->NumberOfPages * EFI_PAGE_SIZE + start->PhysicalStart, max_memory_map_addr);
+            max_memory_map_addr = MAX(start_efi->NumberOfPages * EFI_PAGE_SIZE + start_efi->PhysicalStart, max_memory_map_addr);
 
             /* Attach memory described by memory map entry described by start
              * of type type*/
             // LAB 6: Your code here
-            attach_region(start, end, type);
 
+            assert(!(start_efi->PhysicalStart % PAGE_SIZE) && "not aligned on PAGE_SIZE");
+            uint64_t mem_size = start_efi->NumberOfPages * EFI_PAGE_SIZE;
 
+            if (start_efi->PhysicalStart < IOPHYSMEM || start_efi->PhysicalStart + mem_size >= PADDR(end))
+            {
+                start_efi = (void *)((uint8_t *)start_efi + uefi_lp->MemoryMapDescriptorSize);
+                continue;
+            }
 
-            start = (void *)((uint8_t *)start + uefi_lp->MemoryMapDescriptorSize);
+            attach_region((uintptr_t)start_efi->PhysicalStart, mem_size + start_efi->PhysicalStart, type);
+
+            start_efi = (void *)((uint8_t *)start_efi + uefi_lp->MemoryMapDescriptorSize);
         }
 
         basemem = MIN(max_memory_map_addr, IOPHYSMEM);
