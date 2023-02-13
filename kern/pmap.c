@@ -699,6 +699,26 @@ init_allocator(void) {
     root.state = PARTIAL_NODE;
 }
 
+static void test_work_with_tree(void)
+{
+    struct Page* page = NULL;
+
+    struct Page *prepre = NULL;
+    struct Page *preprepre = NULL;
+    struct Page *pre = NULL;
+
+    while ((page = alloc_page(0, ALLOC_POOL)) != NULL){
+        preprepre = prepre;
+        prepre = pre;
+        pre = page;
+    }
+
+    page_unref(prepre);
+    page_unref(preprepre);
+
+    dump_memory_lists();
+}
+
 void
 init_memory(void) {
 
