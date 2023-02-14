@@ -840,7 +840,12 @@ unmap_page(struct AddressSpace *spc, uintptr_t addr, int class) {
 
     // LAB 7: Your code here
 
-    size_t pdi0 = 0, pdi1 = 0;
+    size_t pdi0 = PD_INDEX(addr), pdi1 = PD_INDEX(end);
+
+    if (class >= 9) {
+        remove_pt(pdp, addr, 2 * MB, pdi0, pdi1);
+        goto finish;
+    }
 
     /* Return if page is not present or
      * split 2*MB page into 4KB pages if required.
@@ -853,7 +858,21 @@ unmap_page(struct AddressSpace *spc, uintptr_t addr, int class) {
     // LAB 7: Your code here
 
     (void)pdi1, (void)pdi0;
-    pte_t *pt = NULL;
+
+    if (!(pdp[pdpi0] & PTE_P))
+        return;
+    else if (pd[pdi0] & PTE_PS) {
+        pte_t old = pd[pdi0];
+        res = alloc_pt(pd + pdi0);
+        assert(!res);
+        pte_t *pt = KADDR(PTE_ADDR(pd[pdi0]));
+        res = alloc_fill_pt(pt, old & ~PTE_PS, 4 * KB, 0, PT_ENTRY_COUNT);
+        inval_start = ROUNDDOWN(inval_start, 2 * MB);
+        inval_end = ROUNDUP(inval_end, 2 * MB);
+        assert(!res);
+    }
+
+    pte_t *pt = KADDR(PTE_ADDR(pd[pdi0]));
 
     /* Unmap 4KB hw pages */
     size_t pti0 = PT_INDEX(addr), pti1 = PT_INDEX(end);
@@ -946,7 +965,12 @@ map_page(struct AddressSpace *spc, uintptr_t addr, struct Page *page, int flags)
     // LAB 7: Your code here
 
     (void)pd;
-    size_t pdi0 = 0, pdi1 = 0;
+    size_t pdi0 = PD_INDEX(addr), pdi1 = PD_INDEX(end);
+    /* Fixup index if pdpi0 == 511 and pdpi1 == 0 (and should be 512) */
+    if (pdi0 > pdi1) pdi1 = PD_ENTRY_COUNT;
+    /* Fill PDP range if page size is larger than 1GB */
+    if (page->class >= 9) return alloc_fill_pt(pd, base, 2 * MB, pdi0, pdi1);
+
 
     /* Allocate empty pt or split 2MB page into 4KB pages if required and
      * calculate virtual address into pt.
@@ -956,7 +980,15 @@ map_page(struct AddressSpace *spc, uintptr_t addr, struct Page *page, int flags)
     // LAB 7: Your code here
 
     (void)pdi0, (void)pdi1;
-    pte_t *pt = NULL;
+    if (!(pd[pdi0] & PTE_P) && alloc_pt(pd + pdi0) < 0) return -E_NO_MEM;
+    else if (pd[pdi0] & PTE_PS) {
+        pde_t old = pd[pdi0];
+        if (alloc_pt(pd + pdi0) < 0) return -E_NO_MEM;
+        pde_t *pt = KADDR(PTE_ADDR(pd[pdi0]));
+        if (alloc_fill_pt(pt, old & ~PTE_PS, 4 * KB, 0, PT_ENTRY_COUNT) < 0) return -E_NO_MEM;
+    }
+
+    pde_t *pt = KADDR(PTE_ADDR(pd[pdi0]));
 
     /* If requested region is larger than or equal to 4KB (at least one whole page) */
 
@@ -1430,7 +1462,18 @@ struct AddressSpace *
 switch_address_space(struct AddressSpace *space) {
     assert(space);
     ///LAB 7: Your code here
-    return NULL;
+
+    if (space == current_space)
+    {
+        return space;
+    }
+
+    lcr3(space->cr3);
+
+    struct AddressSpace *tmp = current_space;
+    current_space = space;
+
+    return tmp;
 }
 
 /* Buffers for filler pages are statically allocated for simplicity
