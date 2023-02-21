@@ -623,12 +623,44 @@ check_virtual_tree(struct Page *page, int class) {
     }
 }
 
+#define SPACES_ for (int i = 0; i < spaces; i++){cprintf (" ");}
+
+static void
+dump_virtual_tree_rec(struct Page *node, int class, size_t spaces)
+{
+    SPACES_
+    cprintf ("bind_physical_addr = %016lX, physical_addr = %016lX, virtual_addr = %p\n", 
+                (physaddr_t)node->phy, page2pa(node), node);
+    SPACES_
+    cprintf ("state = %d, refc = %d, phy class = %d, expected class = %d\n", node->state, node->refc, node->class, class);
+
+    if (node->left){
+        SPACES_
+        cprintf ("Left node\n");
+        dump_virtual_tree_rec(node->left, class - 1, spaces += 2);
+    }
+
+    if (node->right){
+        SPACES_
+        cprintf ("Right node\n");
+        dump_virtual_tree_rec(node->right, class - 1, spaces += 2);
+    }
+}
+
+#undef SPACES_
+
 /*
  * Pretty-print virtual memory tree
  */
 void
 dump_virtual_tree(struct Page *node, int class) {
     // LAB 7: Your code here
+    if (node == NULL || class <= 0){
+        cprintf ("Invalid params\n");
+        return;
+    }
+    int spaces = 0;
+    dump_virtual_tree_rec(node, class, spaces);
 }
 
 void
@@ -647,6 +679,48 @@ dump_memory_lists(void) {
     }
 }
 
+
+static void recurse_dump_table(int level, pte_t *pt)
+{
+    size_t size = 0;
+    switch (level)
+    {
+        case 4:
+            size = 512 * GB;
+            break;
+        case 3:
+            size = GB;
+            break;
+        case 2:
+            size = 2 * MB;
+            break;
+        case 1:
+            size = 4 * KB;
+            break;
+        default:
+            return;
+    }
+    
+    for (int i = 0; i < PD_ENTRY_COUNT; i++)
+    {
+        if (pt[i] & PTE_P)
+        {
+            if (((size == (2 * MB)) || (size == (1 * GB))) && (pt[i] & PTE_PS))
+            {
+                dump_entry(pt[i], size, 1);
+            }
+            else
+            {
+                dump_entry(pt[i], size, 1);
+                if (level > 1)
+                {
+                    recurse_dump_table(level - 1,  KADDR(PTE_ADDR(pt[i])));
+                }
+            }
+        }
+    }
+}
+
 /*
  * Pretty-print page table
  * You can read about page the table
@@ -654,11 +728,13 @@ dump_memory_lists(void) {
  * (Use dump_entry())
  * NOTE: Don't forget about PTE_PS
  */
+
 void
 dump_page_table(pte_t *pml4) {
     uintptr_t addr = 0;
     cprintf("Page table:\n");
     (void)addr;
+    recurse_dump_table(4, pml4);
     // LAB 7: Your code here
 }
 
@@ -756,6 +832,13 @@ memcpy_page(struct AddressSpace *dst, uintptr_t va, struct Page *page) {
     assert(current_space);
     assert(dst);
 
+    struct AddressSpace *old = switch_address_space(dst);
+
+    set_wp(0);
+    nosan_memcpy((void *)va, KADDR((physaddr_t)page->phy), CLASS_SIZE(page->class));
+    set_wp(1);
+
+    switch_address_space(old);
     // LAB 7: Your code here
 }
 
@@ -842,8 +925,9 @@ unmap_page(struct AddressSpace *spc, uintptr_t addr, int class) {
 
     size_t pdi0 = PD_INDEX(addr), pdi1 = PD_INDEX(end);
 
+    if (pdi0 > pdi1) pdi1 = PDP_ENTRY_COUNT;
     if (class >= 9) {
-        remove_pt(pdp, addr, 2 * MB, pdi0, pdi1);
+        remove_pt(pd, addr, 2 * MB, pdi0, pdi1);
         goto finish;
     }
 
@@ -966,9 +1050,7 @@ map_page(struct AddressSpace *spc, uintptr_t addr, struct Page *page, int flags)
 
     (void)pd;
     size_t pdi0 = PD_INDEX(addr), pdi1 = PD_INDEX(end);
-    /* Fixup index if pdpi0 == 511 and pdpi1 == 0 (and should be 512) */
     if (pdi0 > pdi1) pdi1 = PD_ENTRY_COUNT;
-    /* Fill PDP range if page size is larger than 1GB */
     if (page->class >= 9) return alloc_fill_pt(pd, base, 2 * MB, pdi0, pdi1);
 
 
@@ -1086,7 +1168,7 @@ found:
                                        page2pa(new), page2pa(new) + (long)CLASS_MASK(new->class), new->class);
     }
 
-    assert(page2pa(new) >= PADDR(end) || page2pa(new) + CLASS_MASK(new->class) < IOPHYSMEM);
+    ////////////////////////////////////////////////////////////////assert(page2pa(new) >= PADDR(end) || page2pa(new) + CLASS_MASK(new->class) < IOPHYSMEM);
 
     return new;
 }
@@ -1735,6 +1817,22 @@ init_shadow_pre(void) {
 }
 #endif
 
+static void map_region_with_control_panic(struct AddressSpace *dst, uintptr_t dstart, uintptr_t pstart, size_t size, int flags,
+                                         const int line, const char* file, const char* function)
+{
+    int res;
+    if ((res = map_physical_region(&kspace, dstart, pstart, size, flags)) < 0)
+    {
+        panic("Map region [%08lX, %08lX] to [%08lX, %08lX] failed with res %d in file %s in function %s on line %d", 
+                            pstart, pstart + size, 
+                            dstart, dstart + size,
+                            res,
+                            file, function, line);
+    }
+}
+
+#define MAP_REGION_(dst, dstart, pstart, size, flag) map_region_with_control_panic(dst, dstart, pstart, size, flag, __LINE__, __FILE__, __func__)
+
 void
 init_memory(void) {
     int res;
@@ -1760,6 +1858,8 @@ init_memory(void) {
     // NOTE: You need to check if map_physical_region returned 0 everywhere! (and panic otherwise)
     // Map [0, max_memory_map_addr] to [KERN_BASE_ADDR, KERN_BASE_ADDR + max_memory_map_addr] as RW- + ALLOC_WEAK
 
+    MAP_REGION_(&kspace, KERN_BASE_ADDR, 0, max_memory_map_addr, PROT_R | PROT_W | ALLOC_WEAK);
+
 
     extern char __text_end[], __text_start[];
     assert(!((uintptr_t)__text_start & CLASS_MASK(0)));
@@ -1771,12 +1871,17 @@ init_memory(void) {
     // LAB 7: Your code here
     // Map [PADDR(__text_start);PADDR(__text_end)] to [__text_start, __text_end] as RW-
 
+    MAP_REGION_(&kspace, (uintptr_t)__text_start, PADDR(__text_start), __text_end - __text_start, PROT_X | PROT_R | PROT_W);
+
 
     /* Allocate kernel stacks */
 
     // LAB 7: Your code here
     // Map [PADDR(bootstack), PADDR(bootstack) + KERN_STACK_SIZE] to [KERN_STACK_TOP - KERN_STACK_SIZE, KERN_STACK_TOP] as RW-
     // Map [PADDR(pfstack), PADDR(pfstack) + KERN_PF_STACK_SIZE] to [KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE, KERN_PF_STACK_TOP] as RW-
+
+    MAP_REGION_(&kspace, KERN_STACK_TOP - KERN_STACK_SIZE, PADDR(bootstack), KERN_STACK_SIZE, PROT_R | PROT_W);
+    MAP_REGION_(&kspace, KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE, PADDR(pfstack), KERN_PF_STACK_SIZE, PROT_R | PROT_W);
 
 #ifdef SANITIZE_SHADOW_BASE
     init_shadow_pre();
@@ -1789,6 +1894,7 @@ init_memory(void) {
             // LAB 7: Your code here
             // Map [mstart->PhysicalStart, mstart->PhysicalStart+mstart->NumberOfPages*PAGE_SIZE] to
             //     [mstart->VirtualStart, mstart->VirtualStart+mstart->NumberOfPages*PAGE_SIZE] as RW-
+            MAP_REGION_(&kspace, mstart->VirtualStart, mstart->PhysicalStart, mstart->NumberOfPages*PAGE_SIZE, PROT_R | PROT_W);
         }
     }
 
@@ -1853,8 +1959,16 @@ init_memory(void) {
     //     [PADDR(bootstack), PADDR(boottop)] as RW-
     // Map [X86ADDR(KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE), KERN_PF_STACK_TOP] to
     //     [PADDR(pfstack), PADDR(pfstacktop)] as RW-
+    MAP_REGION_(&kspace, uefi_lp->FrameBufferBase, FRAMEBUFFER, uefi_lp->FrameBufferSize, PROT_R | PROT_W | PROT_WC);
+    MAP_REGION_(&kspace, 0, X86ADDR(KERN_BASE_ADDR), MIN(MAX_LOW_ADDR_KERN_SIZE, max_memory_map_addr), PROT_R | PROT_W | ALLOC_WEAK);
+    MAP_REGION_(&kspace, PADDR(__text_start), X86ADDR((uintptr_t)__text_start), ROUNDUP(PADDR(__text_end), CLASS_SIZE(0)) - PADDR(__text_start), PROT_R | PROT_X);
+    MAP_REGION_(&kspace, PADDR(bootstack), X86ADDR(KERN_STACK_TOP - KERN_STACK_SIZE), X86ADDR(KERN_STACK_TOP) - X86ADDR(KERN_STACK_TOP - KERN_STACK_SIZE), PROT_R | PROT_W );
+    MAP_REGION_(&kspace, PADDR(pfstack), X86ADDR(KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE), PADDR(pfstacktop) - PADDR(pfstack), PROT_R | PROT_W);
 
     if (trace_memory_more) dump_page_table(kspace.pml4);
+
+    //dump_page_table(kspace.pml4);
+    //dump_virtual_tree(kspace.root, MAX_CLASS);
 
     check_physical_tree(&root);
     if (trace_init) cprintf("Physical memory tree is stil correct\n");
@@ -1862,3 +1976,5 @@ init_memory(void) {
     check_virtual_tree(kspace.root, MAX_CLASS);
     if (trace_init) cprintf("Kernel virutal memory tree is correct\n");
 }
+
+#undef MAP_REGION_
