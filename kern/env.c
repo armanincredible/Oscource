@@ -89,6 +89,11 @@ envid2env(envid_t envid, struct Env **env_store, bool need_check_perm) {
 void
 env_init(void) {
 #ifndef CONFIG_KSPACE
+    struct Env* env_array = ROUNDDOWN(kzalloc_region(sizeof(struct Env) * NENV), sizeof(struct Env));
+    envs = env_array;
+    MAP_REGION_(&kspace, UENVS, PADDR(env_array), sizeof(struct Env) * NENV, PROT_R);
+
+#else
     struct Env env_array [NENV];
     envs = env_array;
 #endif

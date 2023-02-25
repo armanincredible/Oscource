@@ -1838,22 +1838,6 @@ init_shadow_pre(void) {
 }
 #endif
 
-static void map_region_with_control_panic(struct AddressSpace *dst, uintptr_t dstart, uintptr_t pstart, size_t size, int flags,
-                                         const int line, const char* file, const char* function)
-{
-    int res;
-    if ((res = map_physical_region(&kspace, dstart, pstart, size, flags)) < 0)
-    {
-        panic("Map region [%08lX, %08lX] to [%08lX, %08lX] failed with res %d in file %s in function %s on line %d", 
-                            pstart, pstart + size, 
-                            dstart, dstart + size,
-                            res,
-                            file, function, line);
-    }
-}
-
-#define MAP_REGION_(dst, dstart, pstart, size, flag) map_region_with_control_panic(dst, dstart, pstart, size, flag, __LINE__, __FILE__, __func__)
-
 void
 init_memory(void) {
     int res;
@@ -1998,7 +1982,19 @@ init_memory(void) {
     if (trace_init) cprintf("Kernel virutal memory tree is correct\n");
 }
 
-#undef MAP_REGION_
+void map_region_with_control_panic(struct AddressSpace *dst, uintptr_t dstart, uintptr_t pstart, size_t size, int flags,
+                                         const int line, const char* file, const char* function)
+{
+    int res;
+    if ((res = map_physical_region(&kspace, dstart, pstart, size, flags)) < 0)
+    {
+        panic("Map region [%08lX, %08lX] to [%08lX, %08lX] failed with res %d in file %s in function %s on line %d", 
+                            pstart, pstart + size, 
+                            dstart, dstart + size,
+                            res,
+                            file, function, line);
+    }
+}
 static uintptr_t user_mem_check_addr;
 
 /*

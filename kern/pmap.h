@@ -102,6 +102,12 @@ struct PagePool {
     struct Page data[];    /* Page descriptors storage */
 };
 
+void map_region_with_control_panic(struct AddressSpace *dst, uintptr_t dstart, uintptr_t pstart, size_t size, int flags,
+                                         const int line, const char* file, const char* function);
+
+#define MAP_REGION_(dst, dstart, pstart, size, flag) map_region_with_control_panic(dst, dstart, pstart, size, flag, __LINE__, __FILE__, __func__)
+
+
 int map_region(struct AddressSpace *dspace, uintptr_t dst, struct AddressSpace *sspace, uintptr_t src, uintptr_t size, int flags);
 void unmap_region(struct AddressSpace *dspace, uintptr_t dst, uintptr_t size);
 void init_memory(void);
