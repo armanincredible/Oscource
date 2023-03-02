@@ -1964,11 +1964,11 @@ init_memory(void) {
     //     [PADDR(bootstack), PADDR(boottop)] as RW-
     // Map [X86ADDR(KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE), KERN_PF_STACK_TOP] to
     //     [PADDR(pfstack), PADDR(pfstacktop)] as RW-
-    MAP_REGION_(&kspace, uefi_lp->FrameBufferBase, FRAMEBUFFER, uefi_lp->FrameBufferSize, PROT_R | PROT_W | PROT_WC);
-    MAP_REGION_(&kspace, 0, X86ADDR(KERN_BASE_ADDR), MIN(MAX_LOW_ADDR_KERN_SIZE, max_memory_map_addr), PROT_R | PROT_W | ALLOC_WEAK);
-    MAP_REGION_(&kspace, PADDR(__text_start), X86ADDR((uintptr_t)__text_start), ROUNDUP(PADDR(__text_end), CLASS_SIZE(0)) - PADDR(__text_start), PROT_R | PROT_X);
-    MAP_REGION_(&kspace, PADDR(bootstack), X86ADDR(KERN_STACK_TOP - KERN_STACK_SIZE), X86ADDR(KERN_STACK_TOP) - X86ADDR(KERN_STACK_TOP - KERN_STACK_SIZE), PROT_R | PROT_W );
-    MAP_REGION_(&kspace, PADDR(pfstack), X86ADDR(KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE), PADDR(pfstacktop) - PADDR(pfstack), PROT_R | PROT_W);
+    MAP_REGION_(&kspace, FRAMEBUFFER, uefi_lp->FrameBufferBase, uefi_lp->FrameBufferSize, PROT_R | PROT_W | PROT_WC);
+    MAP_REGION_(&kspace, X86ADDR(KERN_BASE_ADDR), 0, MIN(MAX_LOW_ADDR_KERN_SIZE, max_memory_map_addr), PROT_R | PROT_W | ALLOC_WEAK);
+    MAP_REGION_(&kspace, X86ADDR((uintptr_t)__text_start), PADDR(__text_start), ROUNDUP(PADDR(__text_end), CLASS_SIZE(0)) - PADDR(__text_start), PROT_R | PROT_X);
+    MAP_REGION_(&kspace, X86ADDR(KERN_STACK_TOP - KERN_STACK_SIZE), PADDR(bootstack), X86ADDR(KERN_STACK_TOP) - X86ADDR(KERN_STACK_TOP - KERN_STACK_SIZE), PROT_R | PROT_W );
+    MAP_REGION_(&kspace, X86ADDR(KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE), PADDR(pfstack), PADDR(pfstacktop) - PADDR(pfstack), PROT_R | PROT_W);
 
     if (trace_memory_more) dump_page_table(kspace.pml4);
 
