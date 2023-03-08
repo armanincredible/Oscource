@@ -1168,7 +1168,7 @@ found:
                                        page2pa(new), page2pa(new) + (long)CLASS_MASK(new->class), new->class);
     }
 
-    ////////////////////////////////////////////////////////////////assert(page2pa(new) >= PADDR(end) || page2pa(new) + CLASS_MASK(new->class) < IOPHYSMEM);
+    assert(page2pa(new) >= PADDR(end) || page2pa(new) + CLASS_MASK(new->class) < IOPHYSMEM);
 
     return new;
 }
@@ -1472,9 +1472,13 @@ do_map_region_one_page(struct AddressSpace *dspace, uintptr_t dst, struct Addres
 
 int
 map_region(struct AddressSpace *dspace, uintptr_t dst, struct AddressSpace *sspace, uintptr_t src, uintptr_t size, int flags) {
+    cprintf ("here0\n");
     if (src & CLASS_MASK(0) || (!sspace && !(flags & (ALLOC_ZERO | ALLOC_ONE)))) return -E_INVAL;
+    cprintf ("here1\n");
     if (dst & CLASS_MASK(0) || !dspace) return -E_INVAL;
+    cprintf ("here2\n");
     if (size & CLASS_MASK(0) || !size) return -E_INVAL;
+    cprintf ("here3\n");
 
     /* FIXME This thing does not properly handle
      * remapping overlapping regions to higher addresses */
@@ -1564,6 +1568,10 @@ init_address_space(struct AddressSpace *space) {
      * (remember to clean flag bits of result with PTE_ADDR) */
     // LAB 8: Your code here
 
+    space->cr3 = alloc_pt((pte_t*)&space->cr3);
+    space->cr3 = PTE_ADDR(space->cr3);
+    space->pml4 = KADDR(space->cr3);
+
     /* put its kernel virtual address to space->pml4 */
     // LAB 8: Your code here
 
@@ -1571,8 +1579,12 @@ init_address_space(struct AddressSpace *space) {
     // of type INTERMEDIATE_NODE with alloc_rescriptor() of type
     // LAB 8: Your code here
 
+    space->root = alloc_descriptor(INTERMEDIATE_NODE);
+
     /* Initialize UVPT */
     // LAB 8: Your code here
+
+    space->pml4[PML4_INDEX(UVPT)] = space->cr3 | PTE_P | PTE_U;
 
     /* Why this call is required here and what does it do? */
     propagate_one_pml4(space, &kspace);
@@ -1603,47 +1615,41 @@ detect_memory(void) {
     attach_region(0, PAGE_SIZE, RESERVED_NODE);
 
     /* Attach kernel and old IO memory
-     * (from IOPHYSMEM to the physical address of end label. end points the the
+     * (from IOPHYSMEM to the physical address of end label. end points to the
      *  end of kernel executable image.)*/
     // LAB 6: Your code here
 
     /* Detech memory via ether UEFI or CMOS */
     if (uefi_lp && uefi_lp->MemoryMap) {
-        EFI_MEMORY_DESCRIPTOR *start_efi = (void *)uefi_lp->MemoryMap;
-        EFI_MEMORY_DESCRIPTOR *end_efi = (void *)(uefi_lp->MemoryMap + uefi_lp->MemoryMapSize);
-        while (start_efi < end_efi) {
+        EFI_MEMORY_DESCRIPTOR *start_r = (void *)uefi_lp->MemoryMap;
+        EFI_MEMORY_DESCRIPTOR *end_r = (void *)(uefi_lp->MemoryMap + uefi_lp->MemoryMapSize);
+        while (start_r < end_r) {
             enum PageState type;
-            switch (start_efi->Type) {
-            case EFI_LOADER_CODE:
-            case EFI_LOADER_DATA:
-            case EFI_BOOT_SERVICES_CODE:
-            case EFI_BOOT_SERVICES_DATA:
-            case EFI_CONVENTIONAL_MEMORY:
-                type = start_efi->Attribute & EFI_MEMORY_WB ? ALLOCATABLE_NODE : RESERVED_NODE;
-                break;
-            default:
-                type = RESERVED_NODE;
+            switch (start_r->Type) {
+                case EFI_LOADER_CODE:
+                case EFI_LOADER_DATA:
+                case EFI_BOOT_SERVICES_CODE:
+                case EFI_BOOT_SERVICES_DATA:
+                case EFI_CONVENTIONAL_MEMORY:
+                    type = start_r->Attribute & EFI_MEMORY_WB ? ALLOCATABLE_NODE : RESERVED_NODE;
+                    break;
+                default:
+                    type = RESERVED_NODE;
             }
-
-            max_memory_map_addr = MAX(start_efi->NumberOfPages * EFI_PAGE_SIZE + start_efi->PhysicalStart, max_memory_map_addr);
 
             /* Attach memory described by memory map entry described by start
              * of type type*/
             // LAB 6: Your code here
-            (void)type;
 
-            assert(!(start_efi->PhysicalStart % PAGE_SIZE) && "not aligned on PAGE_SIZE");
-            uint64_t mem_size = start_efi->NumberOfPages * EFI_PAGE_SIZE;
+            max_memory_map_addr = MAX(start_r->NumberOfPages * EFI_PAGE_SIZE + start_r->PhysicalStart, max_memory_map_addr);
 
-            if (start_efi->PhysicalStart < IOPHYSMEM || start_efi->PhysicalStart + mem_size >= PADDR(end))
-            {
-                start_efi = (void *)((uint8_t *)start_efi + uefi_lp->MemoryMapDescriptorSize);
-                continue;
+            if ((start_r->PhysicalStart                                          < IOPHYSMEM) ||
+                (start_r->PhysicalStart + start_r->NumberOfPages * EFI_PAGE_SIZE > PADDR(end))) {
+                // cprintf("Attaching [0x%lx, 0x%llx]\n", start_r->PhysicalStart, start_r->PhysicalStart + start_r->NumberOfPages * EFI_PAGE_SIZE);
+                attach_region(start_r->PhysicalStart, start_r->PhysicalStart + start_r->NumberOfPages * EFI_PAGE_SIZE, type);
             }
 
-            attach_region((uintptr_t)start_efi->PhysicalStart, mem_size + start_efi->PhysicalStart, type);
-
-            start_efi = (void *)((uint8_t *)start_efi + uefi_lp->MemoryMapDescriptorSize);
+            start_r = (void *)((char *)start_r + uefi_lp->MemoryMapDescriptorSize);
         }
 
         basemem = MIN(max_memory_map_addr, IOPHYSMEM);
@@ -1661,8 +1667,8 @@ detect_memory(void) {
     }
 
     if (trace_init) {
-        cprintf("Physical memory: %zuM available, base = %zuK, extended = %zuK\n",
-                (size_t)((basemem + extmem) / MB), (size_t)(basemem / KB), (size_t)(extmem / KB));
+        cprintf("Physical memory: %zuM available, base = %zuK, extended = %zuK, max_mem_map_addr = %zuM\n",
+                (size_t)((basemem + extmem) / MB), (size_t)(basemem / KB), (size_t)(extmem / KB), (size_t)(max_memory_map_addr / MB));
     }
 
     check_physical_tree(&root);

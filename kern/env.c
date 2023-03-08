@@ -89,14 +89,14 @@ envid2env(envid_t envid, struct Env **env_store, bool need_check_perm) {
 void
 env_init(void) {
 #ifndef CONFIG_KSPACE
-    struct Env* env_array = ROUNDDOWN(kzalloc_region(sizeof(struct Env) * NENV), sizeof(struct Env));
-    envs = env_array;
-    MAP_REGION_(&kspace, UENVS, PADDR(env_array), sizeof(struct Env) * NENV, PROT_R);
-
-#else
-    struct Env env_array [NENV];
-    envs = env_array;
+    if (current_space != NULL)
+    {
+        envs = ROUNDDOWN((struct Env*) kzalloc_region(UENVS_SIZE), UENVS_SIZE);
+    }
+    int r = map_region(&kspace, ROUNDDOWN(UENVS, PAGE_SIZE), &kspace, ROUNDDOWN(envs, PAGE_SIZE), ROUNDUP(UENVS_SIZE, PAGE_SIZE), ALLOC_ZERO || PROT_R || PROT_USER_);
+    //if (r < 0) panic("env_init: %i\n", r);
 #endif
+
     memset (envs, 0, NENV * sizeof (struct Env));
     env_free_list = envs;
 
@@ -349,6 +349,10 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     }
     struct Elf* ElfHeader = (struct Elf*) binary;
     struct Proghdr *ProgramHeaders = NULL;
+    if (ElfHeader->e_magic != ELF_MAGIC) {
+        return -E_INVALID_EXE;
+    }
+
     if (ElfHeader->e_shentsize != sizeof (struct Secthdr)) {
         return -E_INVALID_EXE;
     }
@@ -368,14 +372,24 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     for (int header_index = 0; header_index < ElfHeader->e_phnum; header_index++)
     {
         struct Proghdr *cur_header = ProgramHeaders + header_index;
+
+        if (cur_header->p_memsz == 0)
+        {
+            continue;
+        }
+
+        int r = map_region(&env->address_space, ROUNDDOWN(cur_header->p_va, PAGE_SIZE), NULL, 0, ROUNDUP(cur_header->p_memsz, PAGE_SIZE), PROT_R | PROT_W | ALLOC_ZERO);
+        if (r < 0) panic("load_icode: %i\n", r);
+
+        //MAP_REGION_(&env->address_space, cur_header->p_va, cur_header->p_pa, cur_header->p_filesz, PROT_R | PROT_W);
         if (cur_header->p_type == ELF_PROG_LOAD)
         {   
-            memcpy((void*)(cur_header->p_va), binary + cur_header->p_offset, 
+            memcpy((void*)KADDR(cur_header->p_pa), binary + cur_header->p_offset, 
                     cur_header->p_filesz);
 
             if (cur_header->p_filesz < cur_header->p_memsz)
             {
-                memset((void*)cur_header->p_va + cur_header->p_filesz, 0, 
+                memset((void*)KADDR(cur_header->p_pa) + cur_header->p_filesz, 0, 
                     cur_header->p_memsz - cur_header->p_filesz);
             }
         }
@@ -387,13 +401,19 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
             ? MaxAddress : cur_header->p_va + cur_header->p_memsz;
         }
     }
-    env->env_tf.tf_rip = ElfHeader->e_entry;
 
+    int r = map_region(&env->address_space, env->env_tf.tf_rsp, NULL, 0, PAGE_SIZE, PROT_R | PROT_W | ALLOC_ZERO);
+    if (r < 0) panic("load_icode: %i\n", r);
+
+    env->env_tf.tf_rip = ElfHeader->e_entry;
+    
+#ifdef CONFIG_KSPACE
     int err = bind_functions (env, binary, size, MinAddress, MaxAddress);
     if (err)
     {
         panic("load_icode: %i", err);
     }
+#endif
 
     // LAB 8: Your code here
     return 0;
@@ -563,6 +583,8 @@ env_run(struct Env *env) {
     curenv = env;
     curenv->env_status = ENV_RUNNING;
     curenv->env_runs += 1;
+
+    switch_address_space(&env->address_space);
     
     env_pop_tf (&(curenv->env_tf));
 
