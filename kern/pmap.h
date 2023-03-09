@@ -109,6 +109,8 @@ void map_region_with_control_panic(struct AddressSpace *dst, uintptr_t dstart, u
 
 
 int map_region(struct AddressSpace *dspace, uintptr_t dst, struct AddressSpace *sspace, uintptr_t src, uintptr_t size, int flags);
+void
+modify_region(struct AddressSpace *dspace, uintptr_t dst, uintptr_t size, int flags);
 void unmap_region(struct AddressSpace *dspace, uintptr_t dst, uintptr_t size);
 void init_memory(void);
 void release_address_space(struct AddressSpace *space);

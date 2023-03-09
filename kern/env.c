@@ -365,6 +365,8 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
         return -E_INVALID_EXE;
     }
 
+    switch_address_space(&env->address_space);
+
     ProgramHeaders = (struct Proghdr*) (binary + ElfHeader->e_phoff);
     UINT64 MinAddress = ~0ULL;   ///< Physical address min (-1 wraps around to max 64-bit number).
     UINT64 MaxAddress = 0;       ///< Physical address max.
@@ -380,18 +382,26 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
         uintptr_t start = ROUNDDOWN(cur_header->p_va, PAGE_SIZE);
         size_t size = ROUNDUP(cur_header->p_va + cur_header->p_memsz - start, PAGE_SIZE);
 
-        int r = map_region(&env->address_space, start, NULL, 0, size, PROT_R | PROT_W | ALLOC_ZERO);
+        int r = 0;
+        if (cur_header->p_flags & ELF_PROG_FLAG_EXEC) 
+        {
+            map_region(&env->address_space, start, NULL, 0, size, PROT_R | PROT_W | PROT_USER_ | ALLOC_ZERO | PROT_X);
+        }
+        else
+        {
+            map_region(&env->address_space, start, NULL, 0, size, PROT_R | PROT_W | PROT_USER_ | ALLOC_ZERO);
+        }
         if (r < 0) panic("load_icode: %i\n", r);
 
         //MAP_REGION_(&env->address_space, cur_header->p_va, cur_header->p_pa, cur_header->p_filesz, PROT_R | PROT_W);
         if (cur_header->p_type == ELF_PROG_LOAD)
         {   
-            memcpy((void*)KADDR(cur_header->p_pa), binary + cur_header->p_offset, 
+            memcpy((uint8_t *)cur_header->p_va, binary + cur_header->p_offset, 
                     cur_header->p_filesz);
 
             if (cur_header->p_filesz < cur_header->p_memsz)
             {
-                memset((void*)KADDR(cur_header->p_pa) + cur_header->p_filesz, 0, 
+                memset((uint8_t *)cur_header->p_va + cur_header->p_filesz, 0, 
                     cur_header->p_memsz - cur_header->p_filesz);
             }
         }
@@ -403,6 +413,8 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
             ? MaxAddress : cur_header->p_va + cur_header->p_memsz;
         }
     }
+
+    switch_address_space(&kspace);
 
     int r = map_region(&env->address_space, USER_STACK_TOP - PAGE_SIZE, NULL, 0, PAGE_SIZE, PROT_R | PROT_W | PROT_USER_ | ALLOC_ZERO);
     if (r < 0) panic("load_icode: %i\n", r);
