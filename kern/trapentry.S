@@ -74,6 +74,7 @@ _alltraps:
   movw %ax,%ds
   movw %ax,%es
   movq %rsp, %rdi
+  cli
   call trap
   jmp .
 

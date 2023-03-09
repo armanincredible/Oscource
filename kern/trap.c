@@ -141,7 +141,7 @@ trap_init(void) {
 	idt[T_PGFLT]  = GATE(0, GD_KT, (uint64_t) &pgflt_thdlr, 0);
 	idt[T_FPERR]  = GATE(0, GD_KT, (uint64_t) &fperr_thdlr, 0);
     
-    idt[T_SYSCALL] = GATE(0, GD_KT, (uint64_t) &syscall_thdlr, 3);
+    idt[T_SYSCALL] = GATE(1, GD_KT, (uint64_t) &syscall_thdlr, 3);
 
     /* Setup #PF handler dedicated stack
      * It should be switched on #PF because

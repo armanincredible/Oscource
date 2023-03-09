@@ -259,7 +259,7 @@ hpet_enable_interrupts_tim0(void) {
     hpetReg->TIM0_CONF = (IRQ_TIMER << 9) | HPET_TN_TYPE_CNF | HPET_TN_INT_ENB_CNF | HPET_TN_VAL_SET_CNF;
     hpetReg->TIM0_COMP = hpet_get_main_cnt() + Peta / 2 / hpetFemto;
     hpetReg->TIM0_COMP = Peta / 2 / hpetFemto;
-    pic_irq_unmask (IRQ_TIMER);
+    //pic_irq_unmask (IRQ_TIMER);
 
 }
 
@@ -270,7 +270,7 @@ hpet_enable_interrupts_tim1(void) {
     hpetReg->TIM1_CONF = (IRQ_CLOCK << 9) | HPET_TN_TYPE_CNF | HPET_TN_INT_ENB_CNF | HPET_TN_VAL_SET_CNF;
     hpetReg->TIM1_COMP = hpet_get_main_cnt() + 3 * Peta / 2 / hpetFemto;
     hpetReg->TIM1_COMP = 3 * Peta / 2 / hpetFemto;
-    pic_irq_unmask (IRQ_CLOCK);
+    //pic_irq_unmask (IRQ_CLOCK);
 }
 
 void

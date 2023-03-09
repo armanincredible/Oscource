@@ -183,34 +183,33 @@ free_desc_rec(struct Page *p) {
  * depending on whether parent's refc is 0 or non-zero,
  * correspondingly.
  * HINT: Use alloc_descriptor() here
- */
-static struct Page *
+ */static struct Page *
 alloc_child(struct Page *parent, bool right) {
     assert_physical(parent);
     assert(parent);
-
-    struct Page* new = alloc_descriptor (parent->state);
-
-    new->left = NULL;
-    new->right = NULL;
-    new->parent = parent;
-    new->state = parent->state;
-
-    if (parent->refc){
-        new->refc = 1;
-    }
+    assert(parent->class > 0);
+    // LAB 6: Your code here
+    // struct Page **place = (!right ? &parent->left : &parent->right);
+    // assert(*place == NULL);
+    struct Page *new = alloc_descriptor(parent->state);
 
     new->class = parent->class - 1;
-    
-    if (right){
-        new->addr = parent->addr + (1ULL << (parent->class - 1));
-        parent->right = new;
-    }
-    else{
-        new->addr = parent->addr;
-        parent->left = new;
-    }
+    new->parent = parent;
+    new->refc = !!parent->refc;
+    // new->addr = (!right ? parent->addr : parent->addr + (1ULL << (parent->class - 1)));
 
+    // if(trace_memory_more) cprintf("Allocating child response with class %08u\n", new->class);
+    if(right)
+    {
+        parent->right = new;
+        new->addr = parent->addr + (CLASS_SIZE(new->class) >> CLASS_BASE);
+    }
+    else
+    {
+        parent->left = new;
+        new->addr = parent->addr;
+    }
+    // *place = new;
     return new;
 }
 
@@ -835,7 +834,7 @@ memcpy_page(struct AddressSpace *dst, uintptr_t va, struct Page *page) {
     struct AddressSpace *old = switch_address_space(dst);
 
     set_wp(0);
-    nosan_memcpy((void *)va, KADDR((physaddr_t)page->phy), CLASS_SIZE(page->class));
+    nosan_memcpy((void *)va, KADDR(page2pa(page)), CLASS_SIZE(page->class));
     set_wp(1);
 
     switch_address_space(old);
@@ -921,11 +920,12 @@ unmap_page(struct AddressSpace *spc, uintptr_t addr, int class) {
      * Use remove_pt() here. remove_pt() can handle recusive removal.
      * TIP: this resembles closely unmapping code */
 
-    // LAB 7: Your code here
+    //DONE LAB 7: Your code here
 
     size_t pdi0 = PD_INDEX(addr), pdi1 = PD_INDEX(end);
+    /* Fixup index if pdi0 == 511 and pdi1 == 0 (and should be 512) */
+    if (pdi0 > pdi1) pdi1 = PD_ENTRY_COUNT;
 
-    if (pdi0 > pdi1) pdi1 = PDP_ENTRY_COUNT;
     if (class >= 9) {
         remove_pt(pd, addr, 2 * MB, pdi0, pdi1);
         goto finish;
@@ -939,24 +939,22 @@ unmap_page(struct AddressSpace *spc, uintptr_t addr, int class) {
      * (just like is above for 1BG pages)
      */
 
-    // LAB 7: Your code here
 
-    (void)pdi1, (void)pdi0;
+    //DONE LAB 7: Your code here
 
-    if (!(pdp[pdpi0] & PTE_P))
+     if (!(pd[pdi0] & PTE_P))
         return;
     else if (pd[pdi0] & PTE_PS) {
-        pte_t old = pd[pdi0];
+        pdpe_t old = pd[pdi0];
         res = alloc_pt(pd + pdi0);
         assert(!res);
-        pte_t *pt = KADDR(PTE_ADDR(pd[pdi0]));
+        pde_t *pt = KADDR(PTE_ADDR(pd[pdi0]));
         res = alloc_fill_pt(pt, old & ~PTE_PS, 4 * KB, 0, PT_ENTRY_COUNT);
         inval_start = ROUNDDOWN(inval_start, 2 * MB);
         inval_end = ROUNDUP(inval_end, 2 * MB);
         assert(!res);
     }
-
-    pte_t *pt = KADDR(PTE_ADDR(pd[pdi0]));
+    pte_t *pt = KADDR(PTE_ADDR(pd[pdi0]));;
 
     /* Unmap 4KB hw pages */
     size_t pti0 = PT_INDEX(addr), pti1 = PT_INDEX(end);
@@ -1046,7 +1044,7 @@ map_page(struct AddressSpace *spc, uintptr_t addr, struct Page *page, int flags)
 
     /* Calculate indexes and fill PD range if page size is larger than 2MB */
 
-    // LAB 7: Your code here
+    // DONE LAB 7: Your code here
 
     (void)pd;
     size_t pdi0 = PD_INDEX(addr), pdi1 = PD_INDEX(end);
@@ -1059,18 +1057,18 @@ map_page(struct AddressSpace *spc, uintptr_t addr, struct Page *page, int flags)
      * alloc_pt(), alloc_fill_pt() are used here.
      * TIP: Look at the code above doing the same thing for 1GB pages */
 
-    // LAB 7: Your code here
+    // DONE LAB 7: Your code here
 
     (void)pdi0, (void)pdi1;
     if (!(pd[pdi0] & PTE_P) && alloc_pt(pd + pdi0) < 0) return -E_NO_MEM;
+    /* ...or split 1GB page into 2MB pages if required */
     else if (pd[pdi0] & PTE_PS) {
         pde_t old = pd[pdi0];
         if (alloc_pt(pd + pdi0) < 0) return -E_NO_MEM;
-        pde_t *pt = KADDR(PTE_ADDR(pd[pdi0]));
+        pte_t *pt = KADDR(PTE_ADDR(pd[pdi0]));
         if (alloc_fill_pt(pt, old & ~PTE_PS, 4 * KB, 0, PT_ENTRY_COUNT) < 0) return -E_NO_MEM;
     }
-
-    pde_t *pt = KADDR(PTE_ADDR(pd[pdi0]));
+    pte_t *pt = KADDR(PTE_ADDR(pd[pdi0]));;
 
     /* If requested region is larger than or equal to 4KB (at least one whole page) */
 
@@ -1611,46 +1609,46 @@ detect_memory(void) {
 
     /* Attach first page as reserved memory */
     // LAB 6: Your code here
-
     attach_region(0, PAGE_SIZE, RESERVED_NODE);
 
     /* Attach kernel and old IO memory
-     * (from IOPHYSMEM to the physical address of end label. end points to the
+     * (from IOPHYSMEM to the physical address of end label. end points the the
      *  end of kernel executable image.)*/
     // LAB 6: Your code here
 
+    attach_region(IOPHYSMEM, PADDR(end), RESERVED_NODE);
+
     /* Detech memory via ether UEFI or CMOS */
     if (uefi_lp && uefi_lp->MemoryMap) {
-        EFI_MEMORY_DESCRIPTOR *start_r = (void *)uefi_lp->MemoryMap;
-        EFI_MEMORY_DESCRIPTOR *end_r = (void *)(uefi_lp->MemoryMap + uefi_lp->MemoryMapSize);
-        while (start_r < end_r) {
+        EFI_MEMORY_DESCRIPTOR *start = (void *)uefi_lp->MemoryMap;
+        EFI_MEMORY_DESCRIPTOR *end = (void *)(uefi_lp->MemoryMap + uefi_lp->MemoryMapSize);
+
+        while (start < end) {
             enum PageState type;
-            switch (start_r->Type) {
-                case EFI_LOADER_CODE:
-                case EFI_LOADER_DATA:
-                case EFI_BOOT_SERVICES_CODE:
-                case EFI_BOOT_SERVICES_DATA:
-                case EFI_CONVENTIONAL_MEMORY:
-                    type = start_r->Attribute & EFI_MEMORY_WB ? ALLOCATABLE_NODE : RESERVED_NODE;
-                    break;
-                default:
-                    type = RESERVED_NODE;
+            switch (start->Type) {
+            case EFI_LOADER_CODE:
+            case EFI_LOADER_DATA:
+            case EFI_BOOT_SERVICES_CODE:
+            case EFI_BOOT_SERVICES_DATA:
+            case EFI_CONVENTIONAL_MEMORY:
+                type = start->Attribute & EFI_MEMORY_WB ? ALLOCATABLE_NODE : RESERVED_NODE;
+                break;
+            default:
+                type = RESERVED_NODE;
             }
+
+            max_memory_map_addr = MAX(start->NumberOfPages * EFI_PAGE_SIZE + start->PhysicalStart, max_memory_map_addr);
 
             /* Attach memory described by memory map entry described by start
              * of type type*/
             // LAB 6: Your code here
+            (void)type;            (void)type;
 
-            max_memory_map_addr = MAX(start_r->NumberOfPages * EFI_PAGE_SIZE + start_r->PhysicalStart, max_memory_map_addr);
-
-            if ((start_r->PhysicalStart                                          < IOPHYSMEM) ||
-                (start_r->PhysicalStart + start_r->NumberOfPages * EFI_PAGE_SIZE > PADDR(end))) {
-                // cprintf("Attaching [0x%lx, 0x%llx]\n", start_r->PhysicalStart, start_r->PhysicalStart + start_r->NumberOfPages * EFI_PAGE_SIZE);
-                attach_region(start_r->PhysicalStart, start_r->PhysicalStart + start_r->NumberOfPages * EFI_PAGE_SIZE, type);
-            }
-
-            start_r = (void *)((char *)start_r + uefi_lp->MemoryMapDescriptorSize);
+            attach_region(start->PhysicalStart, start->PhysicalStart + start->NumberOfPages * EFI_PAGE_SIZE, type);
+            start = (void *)((uint8_t *)start + uefi_lp->MemoryMapDescriptorSize);
         }
+
+
 
         basemem = MIN(max_memory_map_addr, IOPHYSMEM);
         extmem = max_memory_map_addr - basemem;
@@ -1667,8 +1665,8 @@ detect_memory(void) {
     }
 
     if (trace_init) {
-        cprintf("Physical memory: %zuM available, base = %zuK, extended = %zuK, max_mem_map_addr = %zuM\n",
-                (size_t)((basemem + extmem) / MB), (size_t)(basemem / KB), (size_t)(extmem / KB), (size_t)(max_memory_map_addr / MB));
+        cprintf("Physical memory: %zuM available, base = %zuK, extended = %zuK\n",
+                (size_t)((basemem + extmem) / MB), (size_t)(basemem / KB), (size_t)(extmem / KB));
     }
 
     check_physical_tree(&root);

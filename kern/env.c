@@ -91,9 +91,9 @@ env_init(void) {
 #ifndef CONFIG_KSPACE
     if (current_space != NULL)
     {
-        envs = ROUNDDOWN((struct Env*) kzalloc_region(UENVS_SIZE), UENVS_SIZE);
+        envs = kzalloc_region(UENVS_SIZE);
     }
-    int r = map_region(&kspace, ROUNDDOWN(UENVS, PAGE_SIZE), &kspace, ROUNDDOWN(envs, PAGE_SIZE), ROUNDUP(UENVS_SIZE, PAGE_SIZE), ALLOC_ZERO || PROT_R || PROT_USER_);
+    int r = map_region(&kspace, UENVS, &kspace, (uintptr_t)envs, UENVS_SIZE, PROT_R | PROT_USER_);
     //if (r < 0) panic("env_init: %i\n", r);
 #endif
 
@@ -377,8 +377,10 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
         {
             continue;
         }
+        uintptr_t start = ROUNDDOWN(cur_header->p_va, PAGE_SIZE);
+        size_t size = ROUNDUP(cur_header->p_va + cur_header->p_memsz - start, PAGE_SIZE);
 
-        int r = map_region(&env->address_space, ROUNDDOWN(cur_header->p_va, PAGE_SIZE), NULL, 0, ROUNDUP(cur_header->p_memsz, PAGE_SIZE), PROT_R | PROT_W | ALLOC_ZERO);
+        int r = map_region(&env->address_space, start, NULL, 0, size, PROT_R | PROT_W | ALLOC_ZERO);
         if (r < 0) panic("load_icode: %i\n", r);
 
         //MAP_REGION_(&env->address_space, cur_header->p_va, cur_header->p_pa, cur_header->p_filesz, PROT_R | PROT_W);
@@ -402,7 +404,7 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
         }
     }
 
-    int r = map_region(&env->address_space, env->env_tf.tf_rsp, NULL, 0, PAGE_SIZE, PROT_R | PROT_W | ALLOC_ZERO);
+    int r = map_region(&env->address_space, USER_STACK_TOP - PAGE_SIZE, NULL, 0, PAGE_SIZE, PROT_R | PROT_W | PROT_USER_ | ALLOC_ZERO);
     if (r < 0) panic("load_icode: %i\n", r);
 
     env->env_tf.tf_rip = ElfHeader->e_entry;
@@ -490,6 +492,11 @@ env_destroy(struct Env *env) {
 
     // LAB 3: Your code here
     // LAB 8: Your code here (set in_page_fault = 0)
+    switch_address_space(&kspace);
+    in_page_fault = 0;
+    env_free(env);
+    env = NULL;
+    sched_yield();
 }
 
 #ifdef CONFIG_KSPACE
