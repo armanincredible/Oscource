@@ -101,12 +101,19 @@ platform_asan_init() {
 
     /* 1. Program segments (text, data, rodata, bss) */
     // LAB 8: Your code here
+    asan_internal_fill_range((uptr)&__text_start, &__text_end - &__text_start, 0);
+    asan_internal_fill_range((uptr)&__data_start, &__data_end - &__data_start, 0);
+    asan_internal_fill_range((uptr)&__rodata_start, &__rodata_end - &__rodata_start, 0);
+    asan_internal_fill_range((uptr)&__bss_start, &__bss_end - &__bss_start, 0);
 
     /* 2. Stacks (USER_EXCEPTION_STACK_TOP, USER_STACK_TOP) */
     // LAB 8: Your code here
+    asan_internal_fill_range((uptr)USER_EXCEPTION_STACK_TOP, USER_EXCEPTION_STACK_SIZE, 0);
+    asan_internal_fill_range((uptr)USER_STACK_TOP, USER_STACK_SIZE, 0);
 
     /* 3. Kernel exposed info (UENVS, UVSYS (only for lab 12)) */
     // LAB 8: Your code here
+    asan_internal_fill_range((uptr)UENVS, UENVS_SIZE, 0);
 
 #if LAB >= 12
     platform_asan_unpoison((uptr)UVSYS, NVSYSCALLS * sizeof(int));

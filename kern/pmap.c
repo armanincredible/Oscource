@@ -1765,6 +1765,7 @@ switch_address_space(struct AddressSpace *space) {
 
     if(space == current_space) return current_space;
     struct AddressSpace *ex_space = current_space;
+
     lcr3(space->cr3);
     current_space = space;
     return ex_space;

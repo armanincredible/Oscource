@@ -88,9 +88,11 @@ debuginfo_rip(uintptr_t addr, struct Ripdebuginfo *info) {
      * depending on whether addr is pointing to userspace
      * or kernel space */
     // LAB 8: Your code here:
-
     struct Dwarf_Addrs addrs;
+
+    struct AddressSpace* tmp =  switch_address_space(&kspace);
     load_kernel_dwarf_info(&addrs);
+    switch_address_space(tmp);
 
     Dwarf_Off offset = 0, line_offset = 0;
     int res = info_by_address(&addrs, addr, &offset);
