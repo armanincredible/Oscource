@@ -28,6 +28,30 @@ load_kernel_dwarf_info(struct Dwarf_Addrs *addrs) {
     addrs->pubtypes_end = (uint8_t *)(uefi_lp->DebugPubtypesEnd);
 }
 
+static int load_section(const uint8_t **start, const uint8_t **end, const char* name, const uint8_t *binary)
+{
+    struct Elf *elf    = (struct Elf *)binary;
+    struct Secthdr *sh = (struct Secthdr *)(binary + elf->e_shoff);
+    const char *shstr  = (char *)binary + sh[elf->e_shstrndx].sh_offset;
+    if (shstr == NULL)
+    {
+        panic("load sec shstr");
+    }
+
+    for (size_t i = 0; i < elf->e_shnum; i++)
+    {
+        if (!strcmp(name, shstr + sh[i].sh_name))
+        {
+            *start = binary + sh[i].sh_offset;
+            *end = *start + sh[i].sh_size;
+            //cprintf("%s, start = %p, end = %p\n", name, *start, *end);
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
 void
 load_user_dwarf_info(struct Dwarf_Addrs *addrs) {
     assert(curenv);
@@ -50,8 +74,17 @@ load_user_dwarf_info(struct Dwarf_Addrs *addrs) {
             {&addrs->pubtypes_end, &addrs->pubtypes_begin, ".debug_pubtypes"},
     };
     (void)sections;
-
     memset(addrs, 0, sizeof(*addrs));
+
+    for (size_t i = 0; i < sizeof(sections) / sizeof(*sections); i++)
+    {
+        int res = load_section(sections[i].start, sections[i].end, sections[i].name, binary);
+        if (res < 0)
+        {
+            panic("kdebug: ");
+        }
+
+    }
 
     /* Load debug sections from curenv->binary elf image */
     // LAB 8: Your code here
@@ -91,7 +124,19 @@ debuginfo_rip(uintptr_t addr, struct Ripdebuginfo *info) {
     struct Dwarf_Addrs addrs;
 
     struct AddressSpace* tmp =  switch_address_space(&kspace);
-    load_kernel_dwarf_info(&addrs);
+
+    //if (user_mem_check(curenv, addr, len, PTE_U | PROT_USER_) < 0)
+    if (addr < MAX_USER_ADDRESS)
+    {
+        cprintf("USER:\n");
+        load_user_dwarf_info(&addrs);
+    }
+    else
+    {
+        cprintf("KERNEL:\n");
+        load_kernel_dwarf_info(&addrs);
+    }
+
     switch_address_space(tmp);
 
     Dwarf_Off offset = 0, line_offset = 0;

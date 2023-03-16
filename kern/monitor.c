@@ -86,10 +86,23 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf) {
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf) {
     // LAB 2: Your code here
-    uint64_t rbp = read_rbp();
-    uint64_t rip = *((uint64_t*)rbp + 1);
+    uint64_t rbp = 0;
+    uint64_t rip = 0;
     struct Ripdebuginfo info = {};
     cprintf("Stack backtrace:\n");
+
+    if (tf)
+    {
+        rbp = tf->tf_regs.reg_rbp;
+        rip = tf->tf_rip;
+    }
+    else
+    {
+        rbp = read_rbp();
+        rip = *((uint64_t*)rbp + 1);
+    }
+
+    rip = *((uint64_t*)rbp + 1);
 
     while (rbp)
     {

@@ -420,7 +420,7 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     if (r < 0) panic("load_icode: %i\n", r);
 
     env->env_tf.tf_rip = ElfHeader->e_entry;
-    
+
 #ifdef CONFIG_KSPACE
     int err = bind_functions (env, binary, size, MinAddress, MaxAddress);
     if (err)
