@@ -93,7 +93,8 @@ env_init(void) {
     {
         envs = kzalloc_region(UENVS_SIZE);
     }
-    int r = map_region(&kspace, UENVS, &kspace, (uintptr_t)envs, UENVS_SIZE, PROT_R | PROT_USER_);
+    envs = ROUNDDOWN(envs, PAGE_SIZE);
+    int r = map_region(&kspace, UENVS, &kspace, (uintptr_t)envs, ROUNDUP(UENVS_SIZE, PAGE_SIZE), PROT_R | PROT_USER_);
     //if (r < 0) panic("env_init: %i\n", r);
 #endif
 
@@ -201,7 +202,8 @@ env_alloc(struct Env **newenv_store, envid_t parent_id, enum EnvType type) {
     env_free_list = env->env_link;
     *newenv_store = env;
 
-    if (trace_envs) cprintf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, env->env_id);
+    int id = curenv ? curenv->env_id : 0;
+    if (trace_envs) cprintf("[%08x] new env %08x\n", id, env->env_id);
     return 0;
 }
 
@@ -375,7 +377,7 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     {
         struct Proghdr *cur_header = ProgramHeaders + header_index;
 
-        if (cur_header->p_memsz == 0)
+        if (cur_header->p_type != ELF_PROG_LOAD)
         {
             continue;
         }
@@ -394,17 +396,22 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
         if (r < 0) panic("load_icode: %i\n", r);
 
         //MAP_REGION_(&env->address_space, cur_header->p_va, cur_header->p_pa, cur_header->p_filesz, PROT_R | PROT_W);
-        if (cur_header->p_type == ELF_PROG_LOAD)
-        {   
-            memcpy((uint8_t *)cur_header->p_va, binary + cur_header->p_offset, 
-                    cur_header->p_filesz);
 
-            if (cur_header->p_filesz < cur_header->p_memsz)
-            {
-                memset((uint8_t *)cur_header->p_va + cur_header->p_filesz, 0, 
-                    cur_header->p_memsz - cur_header->p_filesz);
-            }
+        memcpy((uint8_t *)cur_header->p_va, binary + cur_header->p_offset, 
+                cur_header->p_filesz);
+
+        if (cur_header->p_filesz < cur_header->p_memsz)
+        {
+            memset((uint8_t *)cur_header->p_va + cur_header->p_filesz, 0, 
+                cur_header->p_memsz - cur_header->p_filesz);
         }
+
+        cprintf("Ph: [%p:%p] -> [%p:%p] (%zx)->(%zx) flags: %x\n", 
+            (void *)cur_header->p_offset, (void *)cur_header->p_offset + cur_header->p_filesz,
+            (void *)start, (void *)start + size, 
+            cur_header->p_filesz, cur_header->p_memsz,
+            cur_header->p_flags);
+
         if (cur_header->p_type == PT_LOAD) 
         {
             MinAddress = MinAddress < cur_header->p_va
@@ -415,6 +422,9 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     }
 
     switch_address_space(&kspace);
+#ifdef SANITIZE_SHADOW_BASE
+    platform_asan_unpoison((void*)USER_STACK_TOP - PAGE_SIZE, PAGE_SIZE);
+#endif
 
     int r = map_region(&env->address_space, USER_STACK_TOP - PAGE_SIZE, NULL, 0, PAGE_SIZE, PROT_R | PROT_W | PROT_USER_ | ALLOC_ZERO);
     if (r < 0) panic("load_icode: %i\n", r);
@@ -465,7 +475,8 @@ void
 env_free(struct Env *env) {
 
     /* Note the environment's demise. */
-    if (trace_envs) cprintf("[%08x] free env %08x\n", curenv ? curenv->env_id : 0, env->env_id);
+    int id = curenv ? curenv->env_id : 0;
+    if (trace_envs) cprintf("[%08x] free env %08x\n", id, env->env_id);
 
 #ifndef CONFIG_KSPACE
     /* If freeing the current environment, switch to kern_pgdir

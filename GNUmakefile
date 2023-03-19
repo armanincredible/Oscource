@@ -41,7 +41,7 @@ TOP = .
 
 ifdef JOSLLVM
 
-CC	:= clang -target x86_64-gnu-linux -pipe
+CC	:= clang-14 -target x86_64-gnu-linux -pipe
 AS	:= $(shell command -v llvm-as >/dev/null 2>&1 && echo llvm-as || echo as)
 AR	:= $(shell command -v llvm-ar >/dev/null 2>&1 && echo llvm-ar || echo ar)
 LD	:= ld.lld

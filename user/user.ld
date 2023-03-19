@@ -10,13 +10,13 @@ SECTIONS
 	/* Load programs at this address: "." means the current address */
 	. = 0x800000;
 
-	.text : {
+	.text ALIGN(4K) : {
 		__text_start = .;
 		*(.text .stub .text.* .gnu.linkonce.t.*)
 		. = ALIGN(8);
 		__text_end = .;
 
-        PROVIDE(etext = .);	/* Define the 'etext' symbol to this value */
+      PROVIDE(etext = .);	/* Define the 'etext' symbol to this value */
 
 		__rodata_start = .;
 		*(.rodata .rodata.* .gnu.linkonce.r.* .data.rel.ro.local)
@@ -24,7 +24,7 @@ SECTIONS
 		__rodata_end = .;
 	}
 
-	.data : {
+	.data ALIGN(4K) : {
 		__data_start = .;
 		*(.data .data.rel.local)
 		__data_end = .;
@@ -46,7 +46,7 @@ SECTIONS
 
 	. = ALIGN(0x1000);
 
-	.bss : {
+	.bss ALIGN(4K) : {
 		__bss_start = .;
 		*(.bss)
 		*(COMMON)

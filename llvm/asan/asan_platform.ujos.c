@@ -108,8 +108,8 @@ platform_asan_init() {
 
     /* 2. Stacks (USER_EXCEPTION_STACK_TOP, USER_STACK_TOP) */
     // LAB 8: Your code here
-    asan_internal_fill_range((uptr)USER_EXCEPTION_STACK_TOP, USER_EXCEPTION_STACK_SIZE, 0);
-    asan_internal_fill_range((uptr)USER_STACK_TOP, USER_STACK_SIZE, 0);
+    asan_internal_fill_range((uptr)USER_EXCEPTION_STACK_TOP - USER_EXCEPTION_STACK_SIZE, USER_EXCEPTION_STACK_SIZE, 0);
+    asan_internal_fill_range((uptr)USER_STACK_TOP - USER_STACK_SIZE, USER_STACK_SIZE, 0);
 
     /* 3. Kernel exposed info (UENVS, UVSYS (only for lab 12)) */
     // LAB 8: Your code here

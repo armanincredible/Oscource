@@ -2132,6 +2132,8 @@ init_memory(void) {
 
 #ifdef SANITIZE_SHADOW_BASE
     unpoison_meta(&root);
+    platform_asan_unpoison((void*)KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE, KERN_PF_STACK_SIZE);
+    platform_asan_unpoison((void*)KERN_STACK_TOP - KERN_STACK_SIZE, KERN_STACK_SIZE);
 #endif
 
     /* Traps needs to be initiallized here
@@ -2161,8 +2163,10 @@ init_memory(void) {
     // Map [X86ADDR(KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE), KERN_PF_STACK_TOP] to
     //     [PADDR(pfstack), PADDR(pfstacktop)] as RW-
 
+    //cprintf ("here%d\n", __LINE__);
     if(map_physical_region(&kspace, FRAMEBUFFER, uefi_lp->FrameBufferBase, uefi_lp->FrameBufferSize,  PROT_R | PROT_W | PROT_WC))
                 panic("Init memory: mapping [FRAMEBUFFER, FRAMEBUFFER + uefi_lp->FrameBufferSize] unsuccessfull");
+    //cprintf ("here%d\n", __LINE__);
     if(map_physical_region(&kspace, X86ADDR(KERN_BASE_ADDR), 0,  MIN(MAX_LOW_ADDR_KERN_SIZE, max_memory_map_addr),  PROT_R | PROT_W | ALLOC_WEAK))
                 panic("Init memory: mapping [X86ADDR(KERN_BASE_ADDR),MIN(MAX_LOW_ADDR_KERN_SIZE, max_memory_map_addr)] unsuccessfull");
     if(map_physical_region(&kspace, X86ADDR((uintptr_t)__text_start), PADDR(__text_start), ROUNDUP(X86ADDR((uintptr_t)__text_end), CLASS_SIZE(0)) - X86ADDR((uintptr_t)__text_start),  PROT_R | PROT_X))
