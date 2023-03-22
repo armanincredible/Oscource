@@ -412,11 +412,11 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
                 cur_header->p_memsz - cur_header->p_filesz);
         }
 
-        cprintf("Ph: [%p:%p] -> [%p:%p] (%zx)->(%zx) flags: %x\n", 
+        /*cprintf("Ph: [%p:%p] -> [%p:%p] (%zx)->(%zx) flags: %x\n", 
             (void *)cur_header->p_offset, (void *)cur_header->p_offset + cur_header->p_filesz,
             (void *)start, (void *)start + size, 
             cur_header->p_filesz, cur_header->p_memsz,
-            cur_header->p_flags);
+            cur_header->p_flags);*/
 
         if (cur_header->p_type == PT_LOAD) 
         {

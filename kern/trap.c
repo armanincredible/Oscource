@@ -270,6 +270,7 @@ trap_dispatch(struct Trapframe *tf) {
     case T_PGFLT:
         /* Handle processor exceptions. */
         // LAB 9: Your code here.
+        page_fault_handler(tf);
         return;
     case T_BRKPT:
         // LAB 8: Your code here
@@ -442,6 +443,58 @@ page_fault_handler(struct Trapframe *tf) {
     static_assert(UTRAP_RSP == offsetof(struct UTrapframe, utf_rsp), "UTRAP_RSP should be equal to RSP offset");
 
 
+    struct UTrapframe utf_local;
+    struct UTrapframe* utf;
+	uintptr_t uxrsp;
+
+    //user_mem_assert(curenv, cr2, PAGE_SIZE, PTE_U);
+    in_page_fault = 0;
+
+    if (curenv->env_pgfault_upcall) 
+    {
+		uxrsp = USER_EXCEPTION_STACK_TOP;
+		if (tf->tf_rsp < USER_EXCEPTION_STACK_TOP && tf->tf_rsp >= USER_EXCEPTION_STACK_TOP - USER_EXCEPTION_STACK_SIZE) 
+        {
+			uxrsp = tf->tf_rsp - sizeof(uintptr_t);
+        }
+
+        uxrsp -= sizeof(struct UTrapframe);
+		utf = (struct UTrapframe*) uxrsp;
+
+        int res = force_alloc_page(current_space, uxrsp, MAX_ALLOCATION_CLASS);
+        //if (res < 0)
+        //{
+        //    panic("Force alloc page with err = %i\n", res);
+        //}
+        
+        user_mem_assert(curenv, utf, sizeof(struct UTrapframe), PTE_W);
+
+		utf_local.utf_fault_va = cr2;
+		utf_local.utf_err = tf->tf_err;
+		utf_local.utf_regs = tf->tf_regs;
+		utf_local.utf_rip = tf->tf_rip;
+		utf_local.utf_rflags = tf->tf_rflags;
+		utf_local.utf_rsp = tf->tf_rsp;
+
+        nosan_memcpy(utf, &utf_local, sizeof(struct UTrapframe));
+
+		tf->tf_rsp = uxrsp;
+		tf->tf_rip = (uintptr_t)curenv->env_pgfault_upcall;
+
+        curenv->env_tf = *tf;///////////////////////////////////////////////
+
+        //in_page_fault = 0;
+		env_run(curenv);
+
+    }
+
+	cprintf("[%08x] user fault va %08lx ip %08lx\n",
+		curenv->env_id, cr2, tf->tf_rip);
+	print_trapframe(tf);
+	env_destroy(curenv);
+
+    return;
+
     /* Force allocation of exception stack page to prevent memcpy from
      * causing pagefault during another pagefault */
     // LAB 9: Your code here:
@@ -461,5 +514,5 @@ page_fault_handler(struct Trapframe *tf) {
     /* Rerun current environment */
     // LAB 9: Your code here:
 
-    while (1) {}
+    //while (1) {}
 }
