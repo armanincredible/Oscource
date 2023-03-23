@@ -43,7 +43,7 @@ add_pgfault_handler(pf_handler_t handler) {
         /* First time through! */
         // LAB 9: Your code here:
         envid_t envid = sys_getenvid();
-        res = sys_alloc_region(envid, (void *) USER_EXCEPTION_STACK_TOP - PAGE_SIZE, PAGE_SIZE, PROT_RW);
+        res = sys_alloc_region(envid, (void *) USER_EXCEPTION_STACK_TOP - USER_EXCEPTION_STACK_SIZE, USER_EXCEPTION_STACK_SIZE, PROT_RW);
         if (res < 0)
             goto end;
         res = sys_env_set_pgfault_upcall(envid, (void*)_pgfault_upcall);

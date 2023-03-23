@@ -2227,6 +2227,31 @@ user_mem_check(struct Env *env, const void *va, size_t len, int perm) {
         va += CLASS_SIZE(page->class);
     }
     return -E_FAULT;
+    /*const void * end = va + len;
+
+    while (va < end)
+    {
+        struct Page* page = page_lookup_virtual(env->address_space.root, (uintptr_t)va, 0, 0);
+
+        if(!page) {
+            user_mem_check_addr = (uintptr_t)va;
+            return -E_FAULT;
+        }
+        if(!page->phy || (page->state & perm) != perm)
+        {
+            user_mem_check_addr = (uintptr_t)va;
+            return -E_FAULT;
+        }
+
+        va += CLASS_SIZE(page->class);
+    }
+
+    if (va > MAX_USER_ADDRESS)
+    {
+        return -E_FAULT;
+    }
+
+    return 0;*/
 }
 
 void

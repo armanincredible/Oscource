@@ -168,4 +168,6 @@ umain(int argc, char **argv) {
     after.rip = before.rip;
 
     check_regs(&before, "before", &after, "after", "after page-fault");
+
+    return;
 }

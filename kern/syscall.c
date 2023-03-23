@@ -349,6 +349,44 @@ sys_unmap_region(envid_t envid, uintptr_t va, size_t size) {
 static int
 sys_ipc_try_send(envid_t envid, uint32_t value, uintptr_t srcva, size_t size, int perm) {
     // LAB 9: Your code here
+
+    int r;
+	struct Env *env;
+
+	if ((r = envid2env(envid, &env, 0)) < 0)
+		return r;
+
+    if (!env->env_ipc_recving)
+        return -E_IPC_NOT_RECV;
+
+    uintptr_t dst = env->env_ipc_dstva;
+
+    if (srcva < MAX_USER_ADDRESS)
+    {
+        if (PAGE_OFFSET(srcva) || perm & ~PROT_ALL)
+        {
+            return -E_INVAL;
+        }
+
+        if ((r = map_region(&env->address_space, dst, &curenv->address_space, srcva, MIN(env->env_ipc_maxsz, size), perm)))
+        {
+            env->env_ipc_perm = 0;
+            return r;
+        }
+        env->env_ipc_perm = perm;
+    }
+    else
+    {
+        env->env_ipc_perm = 0;
+    }
+
+    env->env_ipc_recving = 0;
+    env->env_ipc_maxsz = MIN(env->env_ipc_maxsz, size);
+    env->env_ipc_from = curenv->env_id;
+    env->env_ipc_value = value;
+    env->env_status = ENV_RUNNABLE;
+    
+
     return 0;
 }
 
@@ -369,6 +407,25 @@ sys_ipc_try_send(envid_t envid, uint32_t value, uintptr_t srcva, size_t size, in
 static int
 sys_ipc_recv(uintptr_t dstva, uintptr_t maxsize) {
     // LAB 9: Your code here
+    if ((uintptr_t)dstva < MAX_USER_ADDRESS)
+    {
+        if (PAGE_OFFSET(dstva))
+        {
+            return -E_INVAL;
+        }
+        if (PAGE_OFFSET(maxsize) || maxsize == 0)
+        {
+            return -E_INVAL;
+        }
+    }
+    curenv->env_ipc_dstva = dstva;
+    curenv->env_ipc_recving = 1;
+    curenv->env_ipc_maxsz = maxsize;
+
+    curenv->env_status = ENV_NOT_RUNNABLE;
+    curenv->env_tf.tf_regs.reg_rax = 0; //equal return 0
+    sys_yield();
+
     return 0;
 }
 
@@ -431,8 +488,17 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
         sys_yield();
         return 0;
     }
-    else if (syscallno == SYS_env_set_pgfault_upcall) {
+    else if (syscallno == SYS_env_set_pgfault_upcall) 
+    {
         return sys_env_set_pgfault_upcall((envid_t) a1, (void *) a2);
+    }
+    else if (syscallno == SYS_ipc_try_send) 
+    {
+        return sys_ipc_try_send((envid_t) a1, (uint32_t) a2, a3, a4, a5);
+    } 
+    else if (syscallno == SYS_ipc_recv) 
+    {
+        return sys_ipc_recv(a1, a2);
     }
     // LAB 9: Your code here
 

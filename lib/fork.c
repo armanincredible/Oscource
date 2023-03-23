@@ -43,7 +43,7 @@ fork(void) {
     r = sys_map_region(0, NULL, envid, NULL, MAX_USER_ADDRESS, PROT_ALL | PROT_LAZY | PROT_COMBINE);
     if (r < 0)
         panic("sys_map_region: %i", r);
-
+    
     /* Start the child environment running */
     if ((r = sys_env_set_status(envid, ENV_RUNNABLE)) < 0)
         panic("sys_env_set_status: %i", r);
