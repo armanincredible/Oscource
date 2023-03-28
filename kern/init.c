@@ -145,7 +145,7 @@ i386_init(void) {
     init_memory();
     
     pic_init();
-    //timers_init();
+    timers_init();
 
     /* Framebuffer init should be done after memory init */
     fb_init();
@@ -155,7 +155,8 @@ i386_init(void) {
     env_init();
 
     /* Choose the timer used for scheduling: hpet or pit */
-    //timers_schedule("hpet0");
+    timers_schedule("hpet0");
+    //hpet_print_struct();
 
 #ifdef CONFIG_KSPACE
     /* Touch all you want */
@@ -176,9 +177,9 @@ i386_init(void) {
     ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
     /* Touch all you want. */
-    //ENV_CREATE(user_forktree, ENV_TYPE_USER);
+    ENV_CREATE(user_spin, ENV_TYPE_USER);
     //ENV_CREATE(user_faultdie, ENV_TYPE_USER);
-    ENV_CREATE(user_faultalloc, ENV_TYPE_USER);
+    //ENV_CREATE(user_faultalloc, ENV_TYPE_USER);
     //ENV_CREATE(user_faultread, ENV_TYPE_USER);
     //ENV_CREATE(user_pingpong, ENV_TYPE_USER);
     //ENV_CREATE(user_faultregs, ENV_TYPE_USER);

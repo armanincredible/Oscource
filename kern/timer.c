@@ -85,6 +85,12 @@ acpi_enable(void) {
         ;
 }
 
+static RSDT *rsdt;
+static RSDP *rsdp;
+//ACPISDTHeader headers[]
+ACPISDTHeader** headers;
+
+
 static void *
 acpi_find_table(const char *sign) {
     /*
@@ -99,26 +105,45 @@ acpi_find_table(const char *sign) {
      * HINT: RSDP address is stored in uefi_lp->ACPIRoot
      * HINT: You may want to distunguish RSDT/XSDT
      */
+
+    
     if (!uefi_lp->ACPIRoot)
     {
         panic("No rsdp\n");
     }
-    RSDP *rsdp = mmio_map_region(uefi_lp->ACPIRoot, sizeof(RSDP));
-    RSDT *rsdt = mmio_map_region(rsdp->RsdtAddress, sizeof (RSDT));
-    rsdt = mmio_remap_last_region(rsdp->RsdtAddress, rsdt, sizeof (RSDT), rsdt->h.Length);
+    if (!rsdp)
+        rsdp = mmio_map_region(uefi_lp->ACPIRoot, sizeof(RSDP));
+    if (!rsdt)
+    {
+        rsdt = mmio_map_region(rsdp->RsdtAddress, sizeof (RSDT));
+        rsdt = mmio_remap_last_region(rsdp->RsdtAddress, rsdt, sizeof (RSDT), rsdt->h.Length);
+    }
+
     int entries = (rsdt->h.Length - sizeof(rsdt->h)) / 4;
+    if (!headers)
+    {
+        headers = (ACPISDTHeader**)kzalloc_region(ROUNDUP(entries * sizeof(ACPISDTHeader*), PAGE_SIZE));
+    }
  
     for (int i = 0; i < entries; i++)
     {
         uint32_t pheader = rsdt->PointerToOtherSDT[i];
-        ACPISDTHeader *header = mmio_map_region(rsdt->PointerToOtherSDT[i], sizeof (ACPISDTHeader));
-        header = mmio_remap_last_region(rsdt->PointerToOtherSDT[i], header, sizeof (ACPISDTHeader), header->Length);
+        ACPISDTHeader *header = headers[i];
+
+        if (!header)
+        {
+            header = mmio_map_region(rsdt->PointerToOtherSDT[i], sizeof (ACPISDTHeader));
+            header = mmio_remap_last_region(rsdt->PointerToOtherSDT[i], header, sizeof (ACPISDTHeader), header->Length);
+        }
 
         if (header->Signature && !strncmp(header->Signature, sign, 4) && check_sum (header))
         {
+            //cprintf ("header = %p\n", header);
             return (void *) header;
         }
     }
+
+
 
     return NULL;
 }
@@ -135,6 +160,10 @@ get_fadt(void) {
     if (!kfadt)
     {
         kfadt = acpi_find_table("FACP");
+        if (!kfadt)
+        {
+            panic("get_fadt:didnt find facp");
+        }
     }
 
     return kfadt;
@@ -150,19 +179,30 @@ get_hpet(void) {
     if (!khpet)
     {
         khpet = acpi_find_table("HPET");
+        if (!khpet)
+        {
+            panic("get_fadt:didnt find hpet");
+        }
     }
 
     return khpet;
 }
 
 /* Getting physical HPET timer address from its table. */
+static void* HPET_REGISTERS;
+
 HPETRegister *
 hpet_register(void) {
-    HPET *hpet_timer = get_hpet();
-    if (!hpet_timer->address.address) panic("hpet is unavailable\n");
+    if (!HPET_REGISTERS)
+    {
+        HPET *hpet_timer = get_hpet();
+        if (!hpet_timer->address.address) panic("hpet is unavailable\n");
 
-    uintptr_t paddr = hpet_timer->address.address;
-    return mmio_map_region(paddr, sizeof(HPETRegister));
+        uintptr_t paddr = hpet_timer->address.address;
+        HPET_REGISTERS = mmio_map_region(paddr, sizeof(HPETRegister));
+    }
+
+    return HPET_REGISTERS;
 }
 
 /* Debug HPET timer state. */
@@ -207,6 +247,10 @@ hpet_init() {
     if (hpetReg == NULL) {
         nmi_disable();
         hpetReg = hpet_register();
+        if (!hpetReg)
+        {
+            panic("hpetReg null");
+        }
         uint64_t cap = hpetReg->GCAP_ID;
         hpetFemto = (uintptr_t)(cap >> 32);
         if (!(cap & HPET_LEG_RT_CAP)) panic("HPET has no LegacyReplacement mode");
@@ -253,24 +297,37 @@ hpet_get_main_cnt(void) {
 void
 hpet_enable_interrupts_tim0(void) {
     // LAB 5: Your code here
-    hpetReg->GEN_CONF |= HPET_ENABLE_CNF;
-    hpetReg->GEN_CONF |= HPET_LEG_RT_CNF; //If the ENABLE_CNF bit and the LEG_RT_CNF bit are both set, then the interrupts will be
-                                          //routed as LegacyReplacement
-    hpetReg->TIM0_CONF = (IRQ_TIMER << 9) | HPET_TN_TYPE_CNF | HPET_TN_INT_ENB_CNF | HPET_TN_VAL_SET_CNF;
-    hpetReg->TIM0_COMP = hpet_get_main_cnt() + Peta / 2 / hpetFemto;
-    hpetReg->TIM0_COMP = Peta / 2 / hpetFemto;
-    //pic_irq_unmask (IRQ_TIMER);
+	// LAB 5: Your code here
+	if (!hpetReg)
+		panic("HPET isn't initialized!\n");
+
+	hpetReg->GEN_CONF |= HPET_LEG_RT_CNF | HPET_ENABLE_CNF;
+	hpetReg->TIM0_CONF = HPET_TN_TYPE_CNF | HPET_TN_INT_ENB_CNF | HPET_TN_VAL_SET_CNF;
+
+	uint64_t time = Peta /( 2 * hpetFemto);
+
+	hpetReg->TIM0_COMP = hpet_get_main_cnt() + time;
+	hpetReg->TIM0_COMP = time;
+
+	pic_irq_unmask(IRQ_TIMER);
 
 }
 
 void
 hpet_enable_interrupts_tim1(void) {
-    hpetReg->GEN_CONF |= HPET_ENABLE_CNF;
-    hpetReg->GEN_CONF |= HPET_LEG_RT_CNF;
-    hpetReg->TIM1_CONF = (IRQ_CLOCK << 9) | HPET_TN_TYPE_CNF | HPET_TN_INT_ENB_CNF | HPET_TN_VAL_SET_CNF;
-    hpetReg->TIM1_COMP = hpet_get_main_cnt() + 3 * Peta / 2 / hpetFemto;
-    hpetReg->TIM1_COMP = 3 * Peta / 2 / hpetFemto;
-    //pic_irq_unmask (IRQ_CLOCK);
+	// LAB 5: Your code here
+	if (!hpetReg)
+		panic("HPET isn't initialized!\n");
+
+	hpetReg->GEN_CONF |= HPET_LEG_RT_CNF | HPET_ENABLE_CNF;
+	hpetReg->TIM1_CONF = HPET_TN_TYPE_CNF | HPET_TN_INT_ENB_CNF | HPET_TN_VAL_SET_CNF;
+
+	uint64_t time = 3 * Peta /( 2 * hpetFemto);
+
+	hpetReg->TIM1_COMP = hpet_get_main_cnt() + time;
+	hpetReg->TIM1_COMP = time;
+
+	pic_irq_unmask(IRQ_CLOCK);
 }
 
 void

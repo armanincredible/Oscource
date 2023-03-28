@@ -60,8 +60,10 @@ sys_env_destroy(envid_t envid) {
     int r;
 	struct Env *env;
 
+    cprintf("start\n");
 	if ((r = envid2env(envid, &env, 1)) < 0)
 		return r;
+    cprintf("end\n");
 
 #if 1 /* TIP: Use this snippet to log required for passing grade tests info */
     if (trace_envs) {
@@ -72,6 +74,7 @@ sys_env_destroy(envid_t envid) {
     }
 #endif
     env_destroy(env);
+    
     return 0;
 }
 

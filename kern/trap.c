@@ -101,11 +101,11 @@ void
 trap_init(void) {
     // LAB 4: Your code here
 
-    //extern void (*clock_thdlr)(void);
-    //idt[IRQ_CLOCK + IRQ_OFFSET] = GATE(0, GD_KT, (uintptr_t)(&clock_thdlr), 0);
+    extern void (*clock_thdlr)(void);
+    idt[IRQ_CLOCK + IRQ_OFFSET] = GATE(0, GD_KT, (uintptr_t)(&clock_thdlr), 0);
 
-    //extern void (*timer_thdlr)(void);
-    //idt[IRQ_TIMER + IRQ_OFFSET] = GATE(0, GD_KT, (uintptr_t)(&timer_thdlr), 0);
+    extern void (*timer_thdlr)(void);
+    idt[IRQ_TIMER + IRQ_OFFSET] = GATE(0, GD_KT, (uintptr_t)(&timer_thdlr), 0);
     
     // LAB 5: Your code here
     extern void (*divide_thdlr)(void);
@@ -450,11 +450,12 @@ page_fault_handler(struct Trapframe *tf) {
     //user_mem_assert(curenv, (void*)USER_EXCEPTION_STACK_TOP - PAGE_SIZE, PAGE_SIZE, PTE_W);
     in_page_fault = 0;
 
-    if (curenv->env_pgfault_upcall) 
+    if (curenv->env_pgfault_upcall)
     {
 		uxrsp = USER_EXCEPTION_STACK_TOP;
 		if (tf->tf_rsp < USER_EXCEPTION_STACK_TOP && tf->tf_rsp >= USER_EXCEPTION_STACK_TOP - USER_EXCEPTION_STACK_SIZE) 
         {
+            cprintf ("i repeat\n");
 			uxrsp = tf->tf_rsp - sizeof(uintptr_t);
         }
 
@@ -467,7 +468,7 @@ page_fault_handler(struct Trapframe *tf) {
         //    panic("Force alloc page with err = %i\n", res);
         //}
         
-        user_mem_assert(curenv, utf, sizeof(struct UTrapframe), PTE_W);
+        user_mem_assert(curenv, utf, sizeof(struct UTrapframe), PROT_W);
 
 		utf_local.utf_fault_va = cr2;
 		utf_local.utf_err = tf->tf_err;
@@ -489,7 +490,7 @@ page_fault_handler(struct Trapframe *tf) {
     }
     else
     {
-        user_mem_assert(curenv, (void*)USER_EXCEPTION_STACK_TOP - PAGE_SIZE, PAGE_SIZE, PTE_W); //just to make grade on 100!
+        user_mem_assert(curenv, (void*)USER_EXCEPTION_STACK_TOP - PAGE_SIZE, PAGE_SIZE, PROT_W); //just to make grade on 100!
     }
 
 	cprintf("[%08x] page_fault_handler assert for va=%016zx ip=%016zx\n",

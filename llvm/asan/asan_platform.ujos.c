@@ -64,16 +64,20 @@ platform_abort() {
  */
 static bool
 asan_shadow_allocator(struct UTrapframe *utf) {
-    // LAB 9: Your code here
-    uint64_t addr = utf->utf_fault_va;
-    if (SHADOW_FOR_ADDRESS(addr) < asan_internal_shadow_end && SHADOW_FOR_ADDRESS(addr) > asan_internal_shadow_start)
-        return 0;
-    
-    int r = sys_alloc_region(thisenv->env_id, SHADOW_FOR_ADDRESS(addr), PAGE_SIZE, ALLOC_ZERO | PROT_RW);
-    if (r < 0)
-        return 0;
-
-    return 1;
+// LAB 9: Your code here
+    if((uint8_t *)utf->utf_fault_va >= asan_internal_shadow_start &&
+    (uint8_t *)utf->utf_fault_va <= asan_internal_shadow_end)
+    {
+        if ( (uint8_t *)utf->utf_fault_va >= SHADOW_FOR_ADDRESS((uintptr_t)(asan_internal_shadow_start)) &&
+        (uint8_t *)utf->utf_fault_va <= SHADOW_FOR_ADDRESS((uintptr_t)(asan_internal_shadow_end)) )
+        {
+            _panic("ASAN", __LINE__, "Shadow self dereferencing\n");
+            platform_abort(); 
+        }
+        sys_alloc_region(0, (void *)ROUNDDOWN(utf->utf_fault_va, PAGE_SIZE), PAGE_SIZE, ALLOC_ONE | PROT_RW);
+        return 1;
+    }
+    return 0;
 }
 #endif
 
