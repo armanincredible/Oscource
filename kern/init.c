@@ -183,6 +183,7 @@ i386_init(void) {
     //ENV_CREATE(user_faultread, ENV_TYPE_USER);
     //ENV_CREATE(user_pingpong, ENV_TYPE_USER);
     //ENV_CREATE(user_faultregs, ENV_TYPE_USER);
+    ENV_CREATE(user_testfile, ENV_TYPE_USER);
 #endif /* TEST* */
 #endif
 

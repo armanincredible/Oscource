@@ -465,6 +465,7 @@ env_create(uint8_t *binary, size_t size, enum EnvType type) {
     {
         panic("env_create: %i", err);
     }
+    // LAB 10: Your code here
 
     env->binary = binary;
     
