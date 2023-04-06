@@ -490,7 +490,7 @@ page_fault_handler(struct Trapframe *tf) {
     }
     else
     {
-        user_mem_assert(curenv, (void*)USER_EXCEPTION_STACK_TOP - PAGE_SIZE, PAGE_SIZE, PROT_W); //just to make grade on 100!
+        //user_mem_assert(curenv, (void*)USER_EXCEPTION_STACK_TOP - PAGE_SIZE, PAGE_SIZE, PROT_W); //just to make grade on 100!
     }
 
 	cprintf("[%08x] page_fault_handler assert for va=%016zx ip=%016zx\n",

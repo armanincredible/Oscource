@@ -44,6 +44,7 @@ SECTIONS
 		*(.got*)
 
 		PROVIDE(edata = .);
+	}
 
 	.bss ALIGN(4K) : {
 		__bss_start = .;

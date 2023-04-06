@@ -60,10 +60,8 @@ sys_env_destroy(envid_t envid) {
     int r;
 	struct Env *env;
 
-    cprintf("start\n");
 	if ((r = envid2env(envid, &env, 1)) < 0)
 		return r;
-    cprintf("end\n");
 
 #if 1 /* TIP: Use this snippet to log required for passing grade tests info */
     if (trace_envs) {
@@ -105,6 +103,7 @@ sys_exofork(void) {
     {
         return err;
     }
+    env->binary = curenv->binary;
     env->env_status = ENV_NOT_RUNNABLE;
     env->env_tf = curenv->env_tf;
     env->env_pgfault_upcall = curenv->env_pgfault_upcall;
@@ -370,8 +369,7 @@ sys_ipc_try_send(envid_t envid, uint32_t value, uintptr_t srcva, size_t size, in
         {
             return -E_INVAL;
         }
-
-        if ((r = map_region(&env->address_space, dst, &curenv->address_space, srcva, MIN(env->env_ipc_maxsz, size), perm)))
+        if ((r = map_region(&env->address_space, dst, &curenv->address_space, srcva, size, perm | PROT_USER_ )) < 0)
         {
             env->env_ipc_perm = 0;
             return r;
@@ -443,7 +441,15 @@ sys_ipc_recv(uintptr_t dstva, uintptr_t maxsize) {
 static int
 sys_region_refs(uintptr_t addr, size_t size, uintptr_t addr2, uintptr_t size2) {
     // LAB 10: Your code here
-    return 0;
+
+    int ref = region_maxref(&curenv->address_space, addr, size);
+
+    if (addr2 >= MAX_USER_ADDRESS)
+        return ref;
+    
+    int ref2 = region_maxref(&curenv->address_space, addr2, size2);
+
+    return ref - ref2;
 }
 
 /* Dispatches to the correct kernel function, passing the arguments. */
@@ -486,6 +492,10 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
     {
         return sys_map_region(a1, a2, a3, a4, a5, a6);
     }
+    else if (syscallno == SYS_unmap_region)
+    {
+        return sys_unmap_region(a1, a2, a3);
+    }
     else if (syscallno == SYS_yield) 
     {
         sys_yield();
@@ -502,6 +512,10 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
     else if (syscallno == SYS_ipc_recv) 
     {
         return sys_ipc_recv(a1, a2);
+    }
+    else if (syscallno == SYS_region_refs)
+    {
+        return sys_region_refs(a1, a2, a3, a4);
     }
     // LAB 9: Your code here
 
