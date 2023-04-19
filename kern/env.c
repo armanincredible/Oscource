@@ -518,19 +518,20 @@ env_destroy(struct Env *env) {
      * ENV_DYING. A zombie environment will be freed the next time
      * it traps to the kernel. */
 
-    env->env_status = ENV_DYING;
+    // LAB 3: Your code here
+
     if (env == curenv)
     {
         env_free(env);
         sched_yield();
     }
+    else 
+    {
+        env->env_status = ENV_DYING;
+    }
 
-    // LAB 3: Your code here
     // LAB 8: Your code here (set in_page_fault = 0)
-    switch_address_space(&kspace);
     in_page_fault = 0;
-    env_free(env);
-    env = NULL;
 }
 
 #ifdef CONFIG_KSPACE
@@ -614,23 +615,19 @@ env_run(struct Env *env) {
         cprintf("[%08X] env started: %s\n", env->env_id, state[env->env_status]);
     }
 
-    if (curenv) 
-    {
-        if (curenv->env_status == ENV_RUNNING) 
-        {
-            curenv->env_status = ENV_RUNNABLE;
-        }
-    }
-    curenv = env;
-    curenv->env_status = ENV_RUNNING;
-    curenv->env_runs += 1;
-
-    switch_address_space(&env->address_space);
-    
-    env_pop_tf (&(curenv->env_tf));
-
     // LAB 3: Your code here
-    // LAB 8: Your code here
+    // LAB 8: Your code here+
 
-    while(1) {}
+    if (curenv != env)
+    {
+        if (curenv != NULL && curenv->env_status == ENV_RUNNING)
+            curenv->env_status =  ENV_RUNNABLE;
+
+        curenv = env;
+        curenv->env_runs++;
+        curenv->env_status = ENV_RUNNING;
+        switch_address_space(&curenv->address_space);
+    }
+
+    env_pop_tf(&curenv->env_tf);
 }

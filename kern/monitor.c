@@ -190,7 +190,7 @@ int mon_virt(int argc, char **argv, struct Trapframe *tf)
 
 int mon_pagetable(int argc, char **argv, struct Trapframe *tf)
 {
-    dump_page_table(current_space->pml4, 4);
+    dump_page_table(current_space->pml4);
     return 0;
 }
 

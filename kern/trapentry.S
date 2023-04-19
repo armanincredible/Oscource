@@ -74,7 +74,6 @@ _alltraps:
   movw %ax,%ds
   movw %ax,%es
   movq %rsp, %rdi
-  cli
   call trap
   jmp .
 
@@ -98,12 +97,12 @@ TRAPHANDLER(tss_thdlr, T_TSS)
 TRAPHANDLER(segnp_thdlr, T_SEGNP)
 TRAPHANDLER(stack_thdlr, T_STACK)
 TRAPHANDLER(gpflt_thdlr, T_GPFLT)
-TRAPHANDLER(pgflt_thdlr, T_PGFLT)
+TRAPHANDLER(pgftl_thdlr, T_PGFLT)
 TRAPHANDLER_NOEC(fperr_thdlr, T_FPERR)
 TRAPHANDLER(align_thdlr, T_ALIGN)
 TRAPHANDLER_NOEC(mchk_thdlr, T_MCHK)
 TRAPHANDLER_NOEC(simderr_thdlr, T_SIMDERR)
-TRAPHANDLER_NOEC(syscall_thdlr, T_SYSCALL)
+TRAPHANDLER_NOEC(syscall_hdlr, T_SYSCALL)
 
 TRAPHANDLER_NOEC(clock_thdlr, (IRQ_OFFSET + IRQ_CLOCK))
 TRAPHANDLER_NOEC(timer_thdlr, (IRQ_OFFSET + IRQ_TIMER))
