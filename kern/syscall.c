@@ -211,6 +211,9 @@ sys_alloc_region(envid_t envid, uintptr_t addr, size_t size, int perm) {
     if (addr >= MAX_USER_ADDRESS || PAGE_OFFSET(addr))
         return -E_INVAL;
 
+    if (!(perm & ALLOC_ZERO) && !(perm & ALLOC_ONE))
+        perm |= ALLOC_ZERO;
+
     r = map_region(&env->address_space, addr, NULL, 0, size, PROT_LAZY | ALLOC_ZERO | PROT_USER_ | perm);
     if (r < 0)
     {
@@ -251,8 +254,9 @@ sys_map_region(envid_t srcenvid, uintptr_t srcva,
 	struct Env *dstenv;
 	if ((r = envid2env(dstenvid, &dstenv, 1)) < 0)
 		return r;
-    /*if (perm & ~PROT_ALL)
-        return -E_INVAL;*/
+
+    if (perm & ~PROT_ALL)
+        return -E_INVAL;
     //r = check_perm(perm);
     //if (r)
     //    return r;
@@ -271,7 +275,7 @@ sys_map_region(envid_t srcenvid, uintptr_t srcva,
         return -E_INVAL;
     }*/
     
-    r = map_region(&dstenv->address_space, dstva, &srcenv->address_space, srcva, size, PROT_LAZY | perm | PROT_USER_ );
+    r = map_region(&dstenv->address_space, dstva, &srcenv->address_space, srcva, size, perm | PROT_USER_ );
     if (r < 0)
     {
         return r;
@@ -443,6 +447,18 @@ sys_ipc_recv(uintptr_t dstva, uintptr_t maxsize) {
 static int
 sys_env_set_trapframe(envid_t envid, struct Trapframe *tf) {
     // LAB 11: Your code here
+    struct Env* targetenv = NULL;
+    int res = envid2env(envid, &targetenv, false);
+    if (res < 0) return res;
+
+    user_mem_assert(curenv, tf, sizeof(struct Trapframe), PROT_R);
+    // nosan_memcpy(&targetenv->env_tf, tf, sizeof(struct Trapframe));
+    targetenv->env_tf = *tf;
+
+    targetenv->env_tf.tf_rflags &= ~(FL_IOPL_MASK);
+    targetenv->env_tf.tf_rflags |= FL_IF;
+    targetenv->env_tf.tf_cs = GD_UT | 3;
+
     return 0;
 }
 
@@ -532,6 +548,10 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
     else if (syscallno == SYS_region_refs)
     {
         return sys_region_refs(a1, a2, a3, a4);
+    }
+    else if (syscallno == SYS_env_set_trapframe)
+    {
+        return sys_env_set_trapframe(a1, a2);
     }
     // LAB 9: Your code here
     // LAB 11: Your code here

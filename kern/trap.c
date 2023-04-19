@@ -124,6 +124,9 @@ trap_init(void) {
 	extern void (*fperr_thdlr)(void);
     extern void (*syscall_thdlr)(void);
 
+    extern void (*kbd_thdlr)(void);
+    extern void (*serial_thdlr)(void);
+
 
     /* Insert trap handlers into IDT */
     // LAB 8: Your code here
@@ -144,6 +147,9 @@ trap_init(void) {
 	idt[T_FPERR]  = GATE(0, GD_KT, (uint64_t) &fperr_thdlr, 0);
     
     idt[T_SYSCALL] = GATE(1, GD_KT, (uint64_t) &syscall_thdlr, 3);
+
+    idt[IRQ_KBD    + IRQ_OFFSET] = GATE(0, GD_KT, (&kbd_thdlr),    0);
+    idt[IRQ_SERIAL + IRQ_OFFSET] = GATE(0, GD_KT, (&serial_thdlr), 0);
 
     /* Setup #PF handler dedicated stack
      * It should be switched on #PF because
@@ -299,6 +305,9 @@ trap_dispatch(struct Trapframe *tf) {
         return;
         /* Handle keyboard and serial interrupts. */
         // LAB 11: Your code here
+    case IRQ_OFFSET + IRQ_SERIAL:
+            serial_intr();
+            return;
     default:
         print_trapframe(tf);
         if (!(tf->tf_cs & 3))

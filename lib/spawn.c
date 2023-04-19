@@ -265,7 +265,7 @@ static int
 map_segment(envid_t child, uintptr_t va, size_t memsz,
             int fd, size_t filesz, off_t fileoffset, int perm) {
 
-    //cprintf("map_segment %x+%x\n", va, memsz);
+    // cprintf("map_segment %lx+%lx\n", va, memsz);
 
     /* Fixup unaligned destination */
     int res = PAGE_OFFSET(va);
@@ -277,28 +277,39 @@ map_segment(envid_t child, uintptr_t va, size_t memsz,
     }
 
     // LAB 11: Your code here
+
     /* Allocate filesz - memsz in child */
-    if (res = sys_alloc_region(child, va + memsz, filesz - memsz, perm) < 0)
-        return res;
-
     /* Allocate filesz in parent to UTEMP */
-    if (res = sys_alloc_region(0, UTEMP, filesz, perm) < 0)
-        return res;
-
     /* seek() fd to fileoffset  */
-    if ((res = seek(fd, fileoffset)) < 0)
-        return res;
-
     /* read filesz to UTEMP */
-    if ((res = readn(fd, UTEMP, filesz)) < 0)
-        return res;
-
     /* Map read section conents to child */
-    if ((res = sys_map_region(child, va, 0, UTEMP, filesz, perm)) < 0)
-        return res;
-    
     /* Unmap it from parent */
-    sys_unmap_region(0, UTEMP, filesz);
+
+    for (unsigned ind = 0; ind < memsz; ind += PAGE_SIZE) 
+    {
+		if (ind >= filesz) 
+        {
+            res = sys_alloc_region(child, (void*) (va + ind), PAGE_SIZE, perm);
+            if (res < 0) return res;
+		} 
+        else 
+        {
+            res = sys_alloc_region(0, UTEMP, PAGE_SIZE, PTE_SYSCALL);
+            if (res < 0) return res;
+
+            res = seek(fd, fileoffset + ind);
+            if (res < 0) return res;
+
+            res = readn(fd, UTEMP, MIN(PAGE_SIZE, filesz - ind));
+            if (res < 0) return res;
+
+            res = sys_map_region(0, UTEMP, child, (void*) va + ind, PAGE_SIZE, perm);
+            if (res < 0) return res;
+
+            res = sys_unmap_region(0, UTEMP, PAGE_SIZE);
+            if (res < 0) return res;
+		}
+	}
 
     return 0;
 }

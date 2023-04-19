@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "mmu.h": "c",
+        "lib.h": "c",
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "utility": "c"
+    }
+}
