@@ -294,19 +294,20 @@ trap_dispatch(struct Trapframe *tf) {
         }
         return;
     case IRQ_OFFSET + IRQ_TIMER:
-        hpet_handle_interrupts_tim0();
-        sched_yield();
-        return;
     case IRQ_OFFSET + IRQ_CLOCK:
-        hpet_handle_interrupts_tim1();
-        sched_yield();
         // LAB 5: Your code here
         // LAB 4: Your code here
+        assert(timer_for_schedule);
+        timer_for_schedule->handle_interrupts();
+
+        sched_yield();  // passing control to the scheduler since 
+                        // we have timer/clocl interrupt
         return;
-        /* Handle keyboard and serial interrupts. */
-        // LAB 11: Your code here
     case IRQ_OFFSET + IRQ_SERIAL:
             serial_intr();
+            return;
+    case IRQ_OFFSET + IRQ_KBD:
+            kbd_intr();
             return;
     default:
         print_trapframe(tf);
