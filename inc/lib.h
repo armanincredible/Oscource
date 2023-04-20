@@ -16,7 +16,10 @@
 #include <inc/env.h>
 #include <inc/memlayout.h>
 #include <inc/syscall.h>
+<<<<<<< HEAD
 #include <inc/vsyscall.h>
+=======
+>>>>>>> working-lab11
 #include <inc/trap.h>
 #include <inc/fs.h>
 #include <inc/fd.h>
@@ -38,7 +41,10 @@ void umain(int argc, char **argv);
 
 /* libmain.c or entry.S */
 extern const char *binaryname;
+<<<<<<< HEAD
 extern const volatile int vsys[];
+=======
+>>>>>>> working-lab11
 extern const volatile struct Env *thisenv;
 extern const volatile struct Env envs[NENV];
 
@@ -93,9 +99,12 @@ int sys_map_region(envid_t src_env, void *src_pg,
 int sys_unmap_region(envid_t env, void *pg, size_t size);
 int sys_ipc_try_send(envid_t to_env, uint64_t value, void *pg, size_t size, int perm);
 int sys_ipc_recv(void *rcv_pg, size_t size);
+<<<<<<< HEAD
 int sys_gettime(void);
 
 int vsys_gettime(void);
+=======
+>>>>>>> working-lab11
 
 /* This must be inlined. Exercise for reader: why? */
 static inline envid_t __attribute__((always_inline))
@@ -174,7 +183,7 @@ extern void (*volatile sys_yield)(void);
 #endif
 
 #ifndef debug
-#define debug 0
+#define debug 1
 #endif
 
 #endif /* !JOS_INC_LIB_H */

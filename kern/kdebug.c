@@ -28,6 +28,33 @@ load_kernel_dwarf_info(struct Dwarf_Addrs *addrs) {
     addrs->pubtypes_end = (uint8_t *)(uefi_lp->DebugPubtypesEnd);
 }
 
+<<<<<<< HEAD
+=======
+static int load_section(const uint8_t **start, const uint8_t **end, const char* name, const uint8_t *binary)
+{
+    struct Elf *elf    = (struct Elf *)binary;
+    struct Secthdr *sh = (struct Secthdr *)(binary + elf->e_shoff);
+    const char *shstr  = (char *)binary + sh[elf->e_shstrndx].sh_offset;
+    if (shstr == NULL)
+    {
+        panic("load sec shstr");
+    }
+
+    for (size_t i = 0; i < elf->e_shnum; i++)
+    {
+        if (!strcmp(name, shstr + sh[i].sh_name))
+        {
+            *start = binary + sh[i].sh_offset;
+            *end = *start + sh[i].sh_size;
+            //cprintf("%s, start = %p, end = %p\n", name, *start, *end);
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
+>>>>>>> working-lab11
 void
 load_user_dwarf_info(struct Dwarf_Addrs *addrs) {
     assert(curenv);
@@ -50,9 +77,24 @@ load_user_dwarf_info(struct Dwarf_Addrs *addrs) {
             {&addrs->pubtypes_end, &addrs->pubtypes_begin, ".debug_pubtypes"},
     };
     (void)sections;
+<<<<<<< HEAD
 
     memset(addrs, 0, sizeof(*addrs));
 
+=======
+    memset(addrs, 0, sizeof(*addrs));
+
+    for (size_t i = 0; i < sizeof(sections) / sizeof(*sections); i++)
+    {
+        int res = load_section(sections[i].start, sections[i].end, sections[i].name, binary);
+        if (res < 0)
+        {
+            panic("kdebug: ");
+        }
+
+    }
+
+>>>>>>> working-lab11
     /* Load debug sections from curenv->binary elf image */
     // LAB 8: Your code here
 }
@@ -88,9 +130,29 @@ debuginfo_rip(uintptr_t addr, struct Ripdebuginfo *info) {
      * depending on whether addr is pointing to userspace
      * or kernel space */
     // LAB 8: Your code here:
+<<<<<<< HEAD
 
     struct Dwarf_Addrs addrs;
     load_kernel_dwarf_info(&addrs);
+=======
+    struct Dwarf_Addrs addrs;
+
+    struct AddressSpace* tmp =  switch_address_space(&kspace);
+
+    //if (user_mem_check(curenv, addr, len, PTE_U | PROT_USER_) < 0)
+    if (addr < MAX_USER_ADDRESS)
+    {
+        cprintf("USER:\n");
+        load_user_dwarf_info(&addrs);
+    }
+    else
+    {
+        cprintf("KERNEL:\n");
+        load_kernel_dwarf_info(&addrs);
+    }
+
+    switch_address_space(tmp);
+>>>>>>> working-lab11
 
     Dwarf_Off offset = 0, line_offset = 0;
     int res = info_by_address(&addrs, addr, &offset);
@@ -107,6 +169,16 @@ debuginfo_rip(uintptr_t addr, struct Ripdebuginfo *info) {
     * Hint: use line_for_address from kern/dwarf_lines.c */
 
     // LAB 2: Your res here:
+<<<<<<< HEAD
+=======
+    int num_line = 0;
+    res = line_for_address (&addrs, addr - 5, line_offset, &num_line);
+    if (res < 0)
+    {
+        goto error;
+    }
+    info->rip_line       = num_line;
+>>>>>>> working-lab11
 
     /* Find function name corresponding to given address.
     * Hint: note that we need the address of `call` instruction, but rip holds
@@ -114,8 +186,22 @@ debuginfo_rip(uintptr_t addr, struct Ripdebuginfo *info) {
     * Hint: use function_by_info from kern/dwarf.c
     * Hint: info->rip_fn_name can be not NULL-terminated,
     * string returned by function_by_info will always be */
+<<<<<<< HEAD
 
     // LAB 2: Your res here:
+=======
+    
+    char* str = NULL;
+    uintptr_t offset_func_start = 0;
+    res = function_by_info (&addrs, addr - 5, offset, &str, &offset_func_start);
+    if (res < 0)
+    {
+        goto error;
+    }
+
+    info->rip_fn_addr    =  offset_func_start;
+    strcpy (info->rip_fn_name, str);
+>>>>>>> working-lab11
 
 error:
     return res;
@@ -131,5 +217,41 @@ find_function(const char *const fname) {
 
     // LAB 3: Your code here:
 
+<<<<<<< HEAD
+=======
+    struct Dwarf_Addrs addrs = {};
+    load_kernel_dwarf_info(&addrs);
+    uintptr_t offset = 0;
+
+    if (!address_by_fname(&addrs, fname, &offset) && offset) 
+    {
+        return offset;
+    }
+
+    if (!naive_address_by_fname(&addrs, fname, &offset) && offset) 
+    {
+        return offset;
+    }
+
+    struct Elf64_Sym *syms = (struct Elf64_Sym *)uefi_lp->SymbolTableStart;
+    size_t num_syms =  (uefi_lp->SymbolTableEnd - uefi_lp->SymbolTableStart) / sizeof (*syms);
+    const char* str_tab = (char*) uefi_lp->StringTableStart;
+    size_t size_str_tab = (char*)uefi_lp->StringTableEnd - str_tab;
+
+    for (size_t i = 0; i < num_syms; i++) 
+    {
+        if (ELF64_ST_BIND(syms[i].st_info) == STB_GLOBAL &&
+            ELF64_ST_TYPE(syms[i].st_info) == STT_FUNC)
+        {
+            const char *name = str_tab + syms[i].st_name;
+            //cprintf ("%s\n", name);
+            if (!strncmp (name, fname, size_str_tab))
+            {
+                //cprintf ("%s - %lx\n", name, syms[i].st_value);
+                return syms[i].st_value;
+            }
+        }
+    }
+>>>>>>> working-lab11
     return 0;
 }

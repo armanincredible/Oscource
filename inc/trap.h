@@ -89,6 +89,42 @@ struct Trapframe {
     uint32_t tf_padding8;
 } __attribute__((packed));
 
+/*
+    uint64_t reg_r15;
+    uint64_t reg_r14;
+    uint64_t reg_r13;
+    uint64_t reg_r12;
+    uint64_t reg_r11;
+    uint64_t reg_r10;
+    uint64_t reg_r9;
+    uint64_t reg_r8;
+    uint64_t reg_rsi;
+    uint64_t reg_rdi;
+    uint64_t reg_rbp;
+    uint64_t reg_rdx;
+    uint64_t reg_rcx;
+
+    uint64_t reg_rbx;
+    uint64_t reg_rax;8
+    uintptr_t utf_rip;16
+    uint64_t utf_rflags;24
+    uintptr_t utf_rsp;32
+*/
+
+
+/*
+    uintptr_t utf_rip;
+    uint64_t utf_rflags;8
+    uintptr_t utf_rsp;16
+*/
+//then push rflags and pop them
+
+/*
+    uintptr_t utf_rip;
+    uint64_t utf_rflags;8
+    uintptr_t utf_rsp;16
+*/
+
 struct UTrapframe {
     /* Information about the fault */
     uint64_t utf_fault_va; /* va for T_PGFLT, 0 otherwise */

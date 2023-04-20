@@ -32,6 +32,18 @@ bc_pgfault(struct UTrapframe *utf) {
      * Hint: first round addr to page boundary. fs/ide.c has code to read
      * the disk. */
     // LAB 10: Your code here
+    addr = ROUNDDOWN(addr, PAGE_SIZE);
+    int r;
+    if ((r = sys_alloc_region(0, addr, PAGE_SIZE, PROT_RW)) < 0)
+        panic("bc_pgfault: sys_page_alloc: %i", r);
+
+    if ((r = ide_read(blockno * BLKSECTS, addr, BLKSECTS)) < 0)
+        panic("ide_read: sys_page_alloc: %i", r);
+
+    if ((r = sys_map_region(0, addr, 0, addr, PAGE_SIZE, get_prot(addr) & ~PTE_D)) < 0)
+    {
+        panic("ide_read: sys_map_region: %i", r);
+    }
 
     return 1;
 }
@@ -53,9 +65,21 @@ flush_block(void *addr) {
         panic("reading non-existent block %08x out of %08x\n", blockno, super->s_nblocks);
 
     // LAB 10: Your code here.
+    addr = ROUNDDOWN(addr, PAGE_SIZE);
 
+    if (!is_page_present(addr) || !is_page_dirty(addr))
+        return;
 
-    assert(!is_page_dirty(addr));
+    int r;
+    if ((r = ide_write(blockno * BLKSECTS, addr, BLKSECTS)) < 0)
+        panic("flush_block: ide_write: %i", r);
+    
+    if ((r = sys_map_region(0, addr, 0, addr, PAGE_SIZE, get_prot(addr) & ~PTE_D)) < 0)
+    {
+        panic("flush_block: sys_map_region: %i", r);
+    }
+
+    return;
 }
 
 /* Test that the block cache works, by smashing the superblock and
@@ -74,7 +98,9 @@ check_bc(void) {
     assert(!is_page_dirty(diskaddr(1)));
 
     /* Clear it out */
-    sys_unmap_region(0, diskaddr(1), PAGE_SIZE);
+    int r = sys_unmap_region(0, diskaddr(1), PAGE_SIZE);
+    if (r < 0)
+        panic("check_bc: sys_unmap_region: %i", r);
     assert(!is_page_present(diskaddr(1)));
 
     /* Read it back in */

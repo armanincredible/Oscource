@@ -64,7 +64,23 @@ platform_abort() {
  */
 static bool
 asan_shadow_allocator(struct UTrapframe *utf) {
+<<<<<<< HEAD
     // LAB 9: Your code here
+=======
+// LAB 9: Your code here
+    if((uint8_t *)utf->utf_fault_va >= asan_internal_shadow_start &&
+    (uint8_t *)utf->utf_fault_va <= asan_internal_shadow_end)
+    {
+        if ( (uint8_t *)utf->utf_fault_va >= SHADOW_FOR_ADDRESS((uintptr_t)(asan_internal_shadow_start)) &&
+        (uint8_t *)utf->utf_fault_va <= SHADOW_FOR_ADDRESS((uintptr_t)(asan_internal_shadow_end)) )
+        {
+            _panic("ASAN", __LINE__, "Shadow self dereferencing\n");
+            platform_abort(); 
+        }
+        sys_alloc_region(0, (void *)ROUNDDOWN(utf->utf_fault_va, PAGE_SIZE), PAGE_SIZE, ALLOC_ONE | PROT_RW);
+        return 1;
+    }
+>>>>>>> working-lab11
     return 0;
 }
 #endif
@@ -101,12 +117,19 @@ platform_asan_init() {
 
     /* 1. Program segments (text, data, rodata, bss) */
     // LAB 8: Your code here
+    asan_internal_fill_range((uptr)&__text_start, &__text_end - &__text_start, 0);
+    asan_internal_fill_range((uptr)&__data_start, &__data_end - &__data_start, 0);
+    asan_internal_fill_range((uptr)&__rodata_start, &__rodata_end - &__rodata_start, 0);
+    asan_internal_fill_range((uptr)&__bss_start, &__bss_end - &__bss_start, 0);
 
     /* 2. Stacks (USER_EXCEPTION_STACK_TOP, USER_STACK_TOP) */
     // LAB 8: Your code here
+    asan_internal_fill_range((uptr)USER_EXCEPTION_STACK_TOP - USER_EXCEPTION_STACK_SIZE, USER_EXCEPTION_STACK_SIZE, 0);
+    asan_internal_fill_range((uptr)USER_STACK_TOP - USER_STACK_SIZE, USER_STACK_SIZE, 0);
 
     /* 3. Kernel exposed info (UENVS, UVSYS (only for lab 12)) */
     // LAB 8: Your code here
+    asan_internal_fill_range((uptr)UENVS, UENVS_SIZE, 0);
 
 #if LAB >= 12
     platform_asan_unpoison((uptr)UVSYS, NVSYSCALLS * sizeof(int));

@@ -65,6 +65,21 @@ struct Timer timer_acpipm = {
         .get_cpu_freq = pmtimer_cpu_frequency,
 };
 
+<<<<<<< HEAD
+=======
+bool 
+check_sum(ACPISDTHeader *tableHeader)
+{
+    unsigned char sum = 0;
+ 
+    for (int i = 0; i < tableHeader->Length; i++)
+    {
+        sum += ((char *) tableHeader)[i];
+    }
+
+    return sum == 0;
+}
+>>>>>>> working-lab11
 void
 acpi_enable(void) {
     FADT *fadt = get_fadt();
@@ -73,6 +88,15 @@ acpi_enable(void) {
         ;
 }
 
+<<<<<<< HEAD
+=======
+static RSDT *rsdt;
+static RSDP *rsdp;
+//ACPISDTHeader headers[]
+ACPISDTHeader** headers;
+
+
+>>>>>>> working-lab11
 static void *
 acpi_find_table(const char *sign) {
     /*
@@ -88,7 +112,48 @@ acpi_find_table(const char *sign) {
      * HINT: You may want to distunguish RSDT/XSDT
      */
 
+<<<<<<< HEAD
     // LAB 5: Your code here
+=======
+    
+    if (!uefi_lp->ACPIRoot)
+    {
+        panic("No rsdp\n");
+    }
+    if (!rsdp)
+        rsdp = mmio_map_region(uefi_lp->ACPIRoot, sizeof(RSDP));
+    if (!rsdt)
+    {
+        rsdt = mmio_map_region(rsdp->RsdtAddress, sizeof (RSDT));
+        rsdt = mmio_remap_last_region(rsdp->RsdtAddress, rsdt, sizeof (RSDT), rsdt->h.Length);
+    }
+
+    int entries = (rsdt->h.Length - sizeof(rsdt->h)) / 4;
+    if (!headers)
+    {
+        headers = (ACPISDTHeader**)kzalloc_region(ROUNDUP(entries * sizeof(ACPISDTHeader*), PAGE_SIZE));
+    }
+ 
+    for (int i = 0; i < entries; i++)
+    {
+        uint32_t pheader = rsdt->PointerToOtherSDT[i];
+        ACPISDTHeader *header = headers[i];
+
+        if (!header)
+        {
+            header = mmio_map_region(rsdt->PointerToOtherSDT[i], sizeof (ACPISDTHeader));
+            header = mmio_remap_last_region(rsdt->PointerToOtherSDT[i], header, sizeof (ACPISDTHeader), header->Length);
+        }
+
+        if (header->Signature && !strncmp(header->Signature, sign, 4) && check_sum (header))
+        {
+            //cprintf ("header = %p\n", header);
+            return (void *) header;
+        }
+    }
+
+
+>>>>>>> working-lab11
 
     return NULL;
 }
@@ -102,6 +167,17 @@ get_fadt(void) {
     //       not always as their names
 
     static FADT *kfadt;
+<<<<<<< HEAD
+=======
+    if (!kfadt)
+    {
+        kfadt = acpi_find_table("FACP");
+        if (!kfadt)
+        {
+            panic("get_fadt:didnt find facp");
+        }
+    }
+>>>>>>> working-lab11
 
     return kfadt;
 }
@@ -113,11 +189,23 @@ get_hpet(void) {
     // (use acpi_find_table)
 
     static HPET *khpet;
+<<<<<<< HEAD
+=======
+    if (!khpet)
+    {
+        khpet = acpi_find_table("HPET");
+        if (!khpet)
+        {
+            panic("get_fadt:didnt find hpet");
+        }
+    }
+>>>>>>> working-lab11
 
     return khpet;
 }
 
 /* Getting physical HPET timer address from its table. */
+<<<<<<< HEAD
 HPETRegister *
 hpet_register(void) {
     HPET *hpet_timer = get_hpet();
@@ -125,6 +213,22 @@ hpet_register(void) {
 
     uintptr_t paddr = hpet_timer->address.address;
     return mmio_map_region(paddr, sizeof(HPETRegister));
+=======
+static void* HPET_REGISTERS;
+
+HPETRegister *
+hpet_register(void) {
+    if (!HPET_REGISTERS)
+    {
+        HPET *hpet_timer = get_hpet();
+        if (!hpet_timer->address.address) panic("hpet is unavailable\n");
+
+        uintptr_t paddr = hpet_timer->address.address;
+        HPET_REGISTERS = mmio_map_region(paddr, sizeof(HPETRegister));
+    }
+
+    return HPET_REGISTERS;
+>>>>>>> working-lab11
 }
 
 /* Debug HPET timer state. */
@@ -169,6 +273,13 @@ hpet_init() {
     if (hpetReg == NULL) {
         nmi_disable();
         hpetReg = hpet_register();
+<<<<<<< HEAD
+=======
+        if (!hpetReg)
+        {
+            panic("hpetReg null");
+        }
+>>>>>>> working-lab11
         uint64_t cap = hpetReg->GCAP_ID;
         hpetFemto = (uintptr_t)(cap >> 32);
         if (!(cap & HPET_LEG_RT_CAP)) panic("HPET has no LegacyReplacement mode");
@@ -215,12 +326,44 @@ hpet_get_main_cnt(void) {
 void
 hpet_enable_interrupts_tim0(void) {
     // LAB 5: Your code here
+<<<<<<< HEAD
+=======
+	// LAB 5: Your code here
+	if (!hpetReg)
+		panic("HPET isn't initialized!\n");
+
+	hpetReg->GEN_CONF |= HPET_LEG_RT_CNF | HPET_ENABLE_CNF;
+	hpetReg->TIM0_CONF = HPET_TN_TYPE_CNF | HPET_TN_INT_ENB_CNF | HPET_TN_VAL_SET_CNF;
+
+	uint64_t time = Peta /( 2 * hpetFemto);
+
+	hpetReg->TIM0_COMP = hpet_get_main_cnt() + time;
+	hpetReg->TIM0_COMP = time;
+
+	pic_irq_unmask(IRQ_TIMER);
+>>>>>>> working-lab11
 
 }
 
 void
 hpet_enable_interrupts_tim1(void) {
+<<<<<<< HEAD
     // LAB 5: Your code here
+=======
+	// LAB 5: Your code here
+	if (!hpetReg)
+		panic("HPET isn't initialized!\n");
+
+	hpetReg->GEN_CONF |= HPET_LEG_RT_CNF | HPET_ENABLE_CNF;
+	hpetReg->TIM1_CONF = HPET_TN_TYPE_CNF | HPET_TN_INT_ENB_CNF | HPET_TN_VAL_SET_CNF;
+
+	uint64_t time = 3 * Peta /( 2 * hpetFemto);
+
+	hpetReg->TIM1_COMP = hpet_get_main_cnt() + time;
+	hpetReg->TIM1_COMP = time;
+
+	pic_irq_unmask(IRQ_CLOCK);
+>>>>>>> working-lab11
 }
 
 void
@@ -239,7 +382,26 @@ hpet_handle_interrupts_tim1(void) {
 uint64_t
 hpet_cpu_frequency(void) {
     static uint64_t cpu_freq;
+<<<<<<< HEAD
 
+=======
+    
+    if (!cpu_freq)
+    {
+        uint64_t ratio = 100,
+                cur_delta = 0,
+                delta = hpetFreq / ratio;
+        uint64_t cnt0 = hpet_get_main_cnt();
+        uint64_t tsc0 = read_tsc();
+
+        do {
+            asm("pause");
+            cur_delta = hpet_get_main_cnt() - cnt0;
+        } while (cur_delta < delta);
+
+        cpu_freq = (read_tsc() - tsc0) * ratio;
+    }
+>>>>>>> working-lab11
     // LAB 5: Your code here
 
     return cpu_freq;
@@ -258,6 +420,33 @@ uint64_t
 pmtimer_cpu_frequency(void) {
     static uint64_t cpu_freq;
 
+<<<<<<< HEAD
+=======
+    if (!cpu_freq)
+    {
+        uint32_t ratio = 100;
+        uint64_t cur_delta = 0,
+                delta = PM_FREQ / ratio;
+        uint32_t t0 = pmtimer_get_timeval();
+        uint64_t tsc0 = read_tsc();
+        
+        do {
+            asm("pause");
+            uint32_t t = pmtimer_get_timeval();
+            cur_delta = t - t0;
+            if (-cur_delta <= 0xFFFFFF)
+            {
+                cur_delta += 0xFFFFFF;
+            }
+            else if (t < t0)
+            {
+                cur_delta += 0xFFFFFFFF;
+            }
+        } while (cur_delta < delta);
+
+        cpu_freq = (read_tsc() - tsc0) * PM_FREQ / cur_delta;
+    }
+>>>>>>> working-lab11
     // LAB 5: Your code here
 
     return cpu_freq;

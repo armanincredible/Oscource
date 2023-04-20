@@ -204,12 +204,61 @@ timer_start(const char *name) {
     (void)timer_id;
     (void)timer;
     (void)freq;
+<<<<<<< HEAD
+=======
+    if (!name || timer_started)
+    {
+        print_timer_error();
+    }
+    for (int i = 0; i < MAX_TIMERS; i++) 
+    {
+        if (timertab[i].timer_name && !strcmp(timertab[i].timer_name, name)) 
+        {
+            //cprintf ("found timer\n");
+            timer_started = true;
+            timer_id = i;
+            freq = timertab[i].get_cpu_freq();
+            timer = read_tsc();
+            return;
+        }
+    }
+    print_timer_error();
+>>>>>>> working-lab11
 }
 
 void
 timer_stop(void) {
+<<<<<<< HEAD
+=======
+    if (timer_started && timer_id)
+    {
+        print_time ((read_tsc() - timer) / freq);
+        timer_id = -1;
+        timer_started = false;
+    }
+    else
+    {
+        print_timer_error();
+    }
+>>>>>>> working-lab11
 }
 
 void
 timer_cpu_frequency(const char *name) {
+<<<<<<< HEAD
+=======
+    if (!name)
+    {
+        print_timer_error();
+    }
+    for (int i = 0; i < MAX_TIMERS; i++) 
+    {
+        if (timertab[i].timer_name && !strcmp(timertab[i].timer_name, name)) 
+        {
+            cprintf("%lu\n", timertab[i].get_cpu_freq());
+            return;
+        }
+    }
+    print_timer_error();
+>>>>>>> working-lab11
 }

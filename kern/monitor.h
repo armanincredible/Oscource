@@ -10,5 +10,13 @@ struct Trapframe;
  * optionally providing a trap frame indicating the current state
  * (NULL if none) */
 void monitor(struct Trapframe *tf);
+<<<<<<< HEAD
+=======
+int print_my_text (int argc, char **argv, struct Trapframe *tf);
+int mon_backtrace(int argc, char **argv, struct Trapframe *tf);
+int mon_start(int argc, char **argv, struct Trapframe *tf);
+int mon_stop(int argc, char **argv, struct Trapframe *tf);
+int mon_frequency(int argc, char **argv, struct Trapframe *tf);
+>>>>>>> working-lab11
 
 #endif /* !JOS_KERN_MONITOR_H */

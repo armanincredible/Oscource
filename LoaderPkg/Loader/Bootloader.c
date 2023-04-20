@@ -103,6 +103,35 @@ InitGraphics (
     DEBUG ((DEBUG_ERROR, "JOS: Cannot find GOP protocol - %r\n", Status));
     return Status;
   }
+  
+  UINT32 mode = 3;
+  EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *Info = NULL;
+  UINTN size = sizeof (EFI_GRAPHICS_OUTPUT_MODE_INFORMATION);
+
+  
+  Status = GraphicsOutput->QueryMode(
+    GraphicsOutput,
+    mode,
+    &size,
+    &Info
+    );
+
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR,"JOS: Cannot use mode = %u - %r\n"
+                        "JOS: MaxMode = %u\n",
+                        mode, Status,
+                        GraphicsOutput->Mode->MaxMode));
+    return Status;
+  }
+
+  Status = GraphicsOutput->SetMode(
+    GraphicsOutput,
+    mode
+    );
+  if (EFI_ERROR (Status)){
+    DEBUG ((DEBUG_ERROR, "JOS: Cannot set mode - %r\n", Status));
+  }
+
 
   //
   // LAB 1: Your code here.
@@ -975,7 +1004,12 @@ UefiMain (
   UINTN              EntryPoint;
   VOID               *GateData;
 
+<<<<<<< HEAD
 #if 1 ///< Uncomment to await debugging
+=======
+
+#if 0 ///< Uncomment to await debugging
+>>>>>>> working-lab11
   volatile BOOLEAN   Connected;
   DEBUG ((DEBUG_INFO, "JOS: Awaiting debugger connection\n"));
 
