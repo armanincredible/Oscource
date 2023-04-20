@@ -23,13 +23,10 @@ sys_cputs(const char *s, size_t len) {
 
     /* Check that the user has permission to read memory [s, s+len).
     * Destroy the environment if not. */
-<<<<<<< HEAD
-=======
     user_mem_assert(curenv, s, len, PTE_U);
 
 	// Print the string supplied by the user.
 	cprintf("%.*s", (int)len, s);
->>>>>>> working-lab11
 
     return 0;
 }
@@ -40,11 +37,7 @@ static int
 sys_cgetc(void) {
     // LAB 8: Your code here
 
-<<<<<<< HEAD
-    return 0;
-=======
     return cons_getc();
->>>>>>> working-lab11
 }
 
 /* Returns the current environment's envid. */
@@ -52,11 +45,7 @@ static envid_t
 sys_getenvid(void) {
     // LAB 8: Your code here
 
-<<<<<<< HEAD
-    return 0;
-=======
     return curenv->env_id;
->>>>>>> working-lab11
 }
 
 /* Destroy a given environment (possibly the currently running environment).
@@ -68,11 +57,6 @@ sys_getenvid(void) {
 static int
 sys_env_destroy(envid_t envid) {
     // LAB 8: Your code here.
-<<<<<<< HEAD
-
-
-#if 0 /* TIP: Use this snippet to log required for passing grade tests info */
-=======
     int r;
 	struct Env *env;
 
@@ -80,7 +64,6 @@ sys_env_destroy(envid_t envid) {
 		return r;
 
 #if 1 /* TIP: Use this snippet to log required for passing grade tests info */
->>>>>>> working-lab11
     if (trace_envs) {
         cprintf(env == curenv ?
                         "[%08x] exiting gracefully\n" :
@@ -88,22 +71,15 @@ sys_env_destroy(envid_t envid) {
                 curenv->env_id, env->env_id);
     }
 #endif
-<<<<<<< HEAD
-
-=======
     env_destroy(env);
     
->>>>>>> working-lab11
     return 0;
 }
 
 /* Deschedule current environment and pick a different one to run. */
 static void
 sys_yield(void) {
-<<<<<<< HEAD
-=======
     sched_yield();
->>>>>>> working-lab11
     // LAB 9: Your code here
 }
 
@@ -120,9 +96,6 @@ sys_exofork(void) {
      * will appear to return 0. */
 
     // LAB 9: Your code here
-<<<<<<< HEAD
-    return 0;
-=======
 
     struct Env* env = NULL;
     int err = env_alloc (&env, sys_getenvid(), ENV_TYPE_USER);
@@ -139,7 +112,6 @@ sys_exofork(void) {
     env->env_tf.tf_regs.reg_rax = 0;
 
     return env->env_id;
->>>>>>> working-lab11
 }
 
 /* Set envid's env_status to status, which must be ENV_RUNNABLE
@@ -158,9 +130,6 @@ sys_env_set_status(envid_t envid, int status) {
      * envid's status. */
 
     // LAB 9: Your code here
-<<<<<<< HEAD
-
-=======
     if (status != ENV_RUNNABLE && status != ENV_NOT_RUNNABLE)
     {
         return -E_INVAL;
@@ -173,7 +142,6 @@ sys_env_set_status(envid_t envid, int status) {
 		return r;
 
     env->env_status = status;
->>>>>>> working-lab11
     return 0;
 }
 
@@ -188,12 +156,6 @@ sys_env_set_status(envid_t envid, int status) {
 static int
 sys_env_set_pgfault_upcall(envid_t envid, void *func) {
     // LAB 9: Your code here:
-<<<<<<< HEAD
-
-    return 0;
-}
-
-=======
     struct Env *e;
     if (envid2env(envid, &e, 1) < 0) {
         return -E_BAD_ENV;
@@ -211,7 +173,6 @@ static int check_perm(int perm) {
   return 0;
 }
 
->>>>>>> working-lab11
 /* Allocate a region of memory and map it at 'va' with permission
  * 'perm' in the address space of 'envid'.
  * The page's contents are set to 0.
@@ -238,8 +199,6 @@ static int check_perm(int perm) {
 static int
 sys_alloc_region(envid_t envid, uintptr_t addr, size_t size, int perm) {
     // LAB 9: Your code here:
-<<<<<<< HEAD
-=======
     int r;
 	struct Env *env;
 	if ((r = envid2env(envid, &env, 1)) < 0)
@@ -260,7 +219,6 @@ sys_alloc_region(envid_t envid, uintptr_t addr, size_t size, int perm) {
     {
         return r;
     }
->>>>>>> working-lab11
     return 0;
 }
 
@@ -289,8 +247,6 @@ sys_map_region(envid_t srcenvid, uintptr_t srcva,
                envid_t dstenvid, uintptr_t dstva, size_t size, int perm) {
     // LAB 9: Your code here
 
-<<<<<<< HEAD
-=======
     int r;
 	struct Env *srcenv;
 	if ((r = envid2env(srcenvid, &srcenv, 1)) < 0)
@@ -324,7 +280,6 @@ sys_map_region(envid_t srcenvid, uintptr_t srcva,
     {
         return r;
     }
->>>>>>> working-lab11
     return 0;
 }
 
@@ -338,9 +293,6 @@ sys_map_region(envid_t srcenvid, uintptr_t srcva,
 static int
 sys_unmap_region(envid_t envid, uintptr_t va, size_t size) {
     /* Hint: This function is a wrapper around unmap_region(). */
-<<<<<<< HEAD
-
-=======
     int r;
 	struct Env *env;
 	if ((r = envid2env(envid, &env, 1)) < 0)
@@ -354,7 +306,6 @@ sys_unmap_region(envid_t envid, uintptr_t va, size_t size) {
         return 0;
     }*/
     unmap_region(&env->address_space, va, size);
->>>>>>> working-lab11
     // LAB 9: Your code here
 
     return 0;
@@ -404,8 +355,6 @@ sys_unmap_region(envid_t envid, uintptr_t va, size_t size) {
 static int
 sys_ipc_try_send(envid_t envid, uint32_t value, uintptr_t srcva, size_t size, int perm) {
     // LAB 9: Your code here
-<<<<<<< HEAD
-=======
 
     int r;
 	struct Env *env;
@@ -443,7 +392,6 @@ sys_ipc_try_send(envid_t envid, uint32_t value, uintptr_t srcva, size_t size, in
     env->env_status = ENV_RUNNABLE;
     
 
->>>>>>> working-lab11
     return 0;
 }
 
@@ -464,8 +412,6 @@ sys_ipc_try_send(envid_t envid, uint32_t value, uintptr_t srcva, size_t size, in
 static int
 sys_ipc_recv(uintptr_t dstva, uintptr_t maxsize) {
     // LAB 9: Your code here
-<<<<<<< HEAD
-=======
     if ((uintptr_t)dstva < MAX_USER_ADDRESS)
     {
         if (PAGE_OFFSET(dstva))
@@ -485,7 +431,6 @@ sys_ipc_recv(uintptr_t dstva, uintptr_t maxsize) {
     curenv->env_tf.tf_regs.reg_rax = 0; //equal return 0
     sys_yield();
 
->>>>>>> working-lab11
     return 0;
 }
 
@@ -502,16 +447,6 @@ sys_ipc_recv(uintptr_t dstva, uintptr_t maxsize) {
 static int
 sys_env_set_trapframe(envid_t envid, struct Trapframe *tf) {
     // LAB 11: Your code here
-<<<<<<< HEAD
-    return 0;
-}
-
-/* Return date and time in UNIX timestamp format: seconds passed
- * from 1970-01-01 00:00:00 UTC. */
-static int
-sys_gettime(void) {
-    // LAB 12: Your code here
-=======
     struct Env* targetenv = NULL;
     int res = envid2env(envid, &targetenv, false);
     if (res < 0) return res;
@@ -524,9 +459,17 @@ sys_gettime(void) {
     targetenv->env_tf.tf_rflags |= FL_IF;
     targetenv->env_tf.tf_cs = GD_UT | 3;
 
->>>>>>> working-lab11
     return 0;
 }
+
+/* Return date and time in UNIX timestamp format: seconds passed
+ * from 1970-01-01 00:00:00 UTC. */
+static int
+sys_gettime(void) {
+    // LAB 12: Your code here
+    return gettime();
+}
+
 
 /*
  * This function return the difference between maximal
@@ -539,9 +482,6 @@ sys_gettime(void) {
 static int
 sys_region_refs(uintptr_t addr, size_t size, uintptr_t addr2, uintptr_t size2) {
     // LAB 10: Your code here
-<<<<<<< HEAD
-    return 0;
-=======
 
     int ref = region_maxref(&curenv->address_space, addr, size);
 
@@ -551,7 +491,6 @@ sys_region_refs(uintptr_t addr, size_t size, uintptr_t addr2, uintptr_t size2) {
     int ref2 = region_maxref(&curenv->address_space, addr2, size2);
 
     return ref - ref2;
->>>>>>> working-lab11
 }
 
 /* Dispatches to the correct kernel function, passing the arguments. */
@@ -561,11 +500,6 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
      * Return any appropriate return value. */
 
     // LAB 8: Your code here
-<<<<<<< HEAD
-    // LAB 9: Your code here
-    // LAB 11: Your code here
-    // LAB 12: Your code here
-=======
     if (syscallno == SYS_cputs) 
     {
         sys_cputs((const char *) a1, (size_t) a2);
@@ -628,9 +562,12 @@ syscall(uintptr_t syscallno, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
     {
         return sys_env_set_trapframe(a1, a2);
     }
+    else if (syscallno == SYS_gettime)
+    {
+        return sys_gettime();
+    }
     // LAB 9: Your code here
     // LAB 11: Your code here
->>>>>>> working-lab11
 
     return -E_NO_SYS;
 }

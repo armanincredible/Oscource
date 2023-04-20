@@ -10,8 +10,6 @@ _Noreturn void sched_halt(void);
 /* Choose a user environment to run and run it */
 _Noreturn void
 sched_yield(void) {
-<<<<<<< HEAD
-=======
     //cprintf("in yield\n");
     if (!curenv)
     {
@@ -29,7 +27,6 @@ sched_yield(void) {
         }
     } while (index != end_index);
 
->>>>>>> working-lab11
     /* Implement simple round-robin scheduling.
      *
      * Search through 'envs' for an ENV_RUNNABLE environment in
@@ -45,10 +42,6 @@ sched_yield(void) {
      * below to halt the cpu */
 
     // LAB 3: Your code here:
-<<<<<<< HEAD
-    env_run(&envs[0]);
-=======
->>>>>>> working-lab11
 
     cprintf("Halt\n");
 

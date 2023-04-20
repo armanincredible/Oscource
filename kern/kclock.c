@@ -5,10 +5,7 @@
 #include <kern/timer.h>
 #include <kern/trap.h>
 #include <kern/picirq.h>
-<<<<<<< HEAD
 #include <inc/time.h>
-=======
->>>>>>> working-lab11
 
 /* HINT: Note that selected CMOS
  * register is reset to the first one
@@ -27,27 +24,17 @@ cmos_read8(uint8_t reg) {
     // LAB 4: Your code here
 
     uint8_t res = 0;
-<<<<<<< HEAD
-
-    nmi_enable();
-=======
     outb (CMOS_CMD, reg);
     res = inb (CMOS_DATA);
 
->>>>>>> working-lab11
     return res;
 }
 
 void
 cmos_write8(uint8_t reg, uint8_t value) {
     // LAB 4: Your code here
-<<<<<<< HEAD
-
-    nmi_enable();
-=======
     outb (CMOS_CMD, reg);
     outb (CMOS_DATA, value);
->>>>>>> working-lab11
 }
 
 uint16_t
@@ -57,10 +44,7 @@ cmos_read16(uint8_t reg) {
 
 static void
 rtc_timer_pic_interrupt(void) {
-<<<<<<< HEAD
-=======
     pic_irq_unmask (IRQ_CLOCK);
->>>>>>> working-lab11
     // LAB 4: Your code here
     // Enable PIC interrupts.
 }
@@ -78,7 +62,6 @@ struct Timer timer_rtc = {
         .handle_interrupts = rtc_timer_pic_handle,
 };
 
-<<<<<<< HEAD
 static int
 get_time(void) {
     struct tm time;
@@ -122,16 +105,23 @@ get_time(void) {
 int
 gettime(void) {
     // LAB 12: your code here
-    int res = 0;
+    int res  = 0;
+    int res2 = 0;
 
+    while ((cmos_read8(RTC_AREG) & RTC_UPDATE_IN_PROGRESS) != 0)
+        continue;
+
+    do 
+    {
+        res  = get_time();
+        res2 = get_time();
+
+    } while (res != res2);
 
     return res;
 }
 
-void
-rtc_timer_init(void) {
-=======
-void
+
 rtc_timer_init(void) {
     nmi_disable();
 
@@ -145,7 +135,6 @@ rtc_timer_init(void) {
 
     val = rtc_check_status ();
     nmi_enable();
->>>>>>> working-lab11
     // LAB 4: Your code here
     // (use cmos_read8/cmos_write8)
 }
@@ -154,12 +143,8 @@ uint8_t
 rtc_check_status(void) {
     // LAB 4: Your code here
     // (use cmos_read8)
-<<<<<<< HEAD
-    return 0;
-=======
     uint8_t val = cmos_read8 (RTC_CREG);
     return val;
 
     //return 0;
->>>>>>> working-lab11
 }

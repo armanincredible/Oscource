@@ -65,8 +65,6 @@ struct Timer timer_acpipm = {
         .get_cpu_freq = pmtimer_cpu_frequency,
 };
 
-<<<<<<< HEAD
-=======
 bool 
 check_sum(ACPISDTHeader *tableHeader)
 {
@@ -79,7 +77,6 @@ check_sum(ACPISDTHeader *tableHeader)
 
     return sum == 0;
 }
->>>>>>> working-lab11
 void
 acpi_enable(void) {
     FADT *fadt = get_fadt();
@@ -88,15 +85,12 @@ acpi_enable(void) {
         ;
 }
 
-<<<<<<< HEAD
-=======
 static RSDT *rsdt;
 static RSDP *rsdp;
 //ACPISDTHeader headers[]
 ACPISDTHeader** headers;
 
 
->>>>>>> working-lab11
 static void *
 acpi_find_table(const char *sign) {
     /*
@@ -112,9 +106,6 @@ acpi_find_table(const char *sign) {
      * HINT: You may want to distunguish RSDT/XSDT
      */
 
-<<<<<<< HEAD
-    // LAB 5: Your code here
-=======
     
     if (!uefi_lp->ACPIRoot)
     {
@@ -153,7 +144,6 @@ acpi_find_table(const char *sign) {
     }
 
 
->>>>>>> working-lab11
 
     return NULL;
 }
@@ -167,8 +157,6 @@ get_fadt(void) {
     //       not always as their names
 
     static FADT *kfadt;
-<<<<<<< HEAD
-=======
     if (!kfadt)
     {
         kfadt = acpi_find_table("FACP");
@@ -177,7 +165,6 @@ get_fadt(void) {
             panic("get_fadt:didnt find facp");
         }
     }
->>>>>>> working-lab11
 
     return kfadt;
 }
@@ -189,8 +176,6 @@ get_hpet(void) {
     // (use acpi_find_table)
 
     static HPET *khpet;
-<<<<<<< HEAD
-=======
     if (!khpet)
     {
         khpet = acpi_find_table("HPET");
@@ -199,21 +184,11 @@ get_hpet(void) {
             panic("get_fadt:didnt find hpet");
         }
     }
->>>>>>> working-lab11
 
     return khpet;
 }
 
 /* Getting physical HPET timer address from its table. */
-<<<<<<< HEAD
-HPETRegister *
-hpet_register(void) {
-    HPET *hpet_timer = get_hpet();
-    if (!hpet_timer->address.address) panic("hpet is unavailable\n");
-
-    uintptr_t paddr = hpet_timer->address.address;
-    return mmio_map_region(paddr, sizeof(HPETRegister));
-=======
 static void* HPET_REGISTERS;
 
 HPETRegister *
@@ -228,7 +203,6 @@ hpet_register(void) {
     }
 
     return HPET_REGISTERS;
->>>>>>> working-lab11
 }
 
 /* Debug HPET timer state. */
@@ -273,13 +247,10 @@ hpet_init() {
     if (hpetReg == NULL) {
         nmi_disable();
         hpetReg = hpet_register();
-<<<<<<< HEAD
-=======
         if (!hpetReg)
         {
             panic("hpetReg null");
         }
->>>>>>> working-lab11
         uint64_t cap = hpetReg->GCAP_ID;
         hpetFemto = (uintptr_t)(cap >> 32);
         if (!(cap & HPET_LEG_RT_CAP)) panic("HPET has no LegacyReplacement mode");
@@ -326,8 +297,6 @@ hpet_get_main_cnt(void) {
 void
 hpet_enable_interrupts_tim0(void) {
     // LAB 5: Your code here
-<<<<<<< HEAD
-=======
 	// LAB 5: Your code here
 	if (!hpetReg)
 		panic("HPET isn't initialized!\n");
@@ -341,15 +310,11 @@ hpet_enable_interrupts_tim0(void) {
 	hpetReg->TIM0_COMP = time;
 
 	pic_irq_unmask(IRQ_TIMER);
->>>>>>> working-lab11
 
 }
 
 void
 hpet_enable_interrupts_tim1(void) {
-<<<<<<< HEAD
-    // LAB 5: Your code here
-=======
 	// LAB 5: Your code here
 	if (!hpetReg)
 		panic("HPET isn't initialized!\n");
@@ -363,7 +328,6 @@ hpet_enable_interrupts_tim1(void) {
 	hpetReg->TIM1_COMP = time;
 
 	pic_irq_unmask(IRQ_CLOCK);
->>>>>>> working-lab11
 }
 
 void
@@ -382,9 +346,6 @@ hpet_handle_interrupts_tim1(void) {
 uint64_t
 hpet_cpu_frequency(void) {
     static uint64_t cpu_freq;
-<<<<<<< HEAD
-
-=======
     
     if (!cpu_freq)
     {
@@ -401,7 +362,6 @@ hpet_cpu_frequency(void) {
 
         cpu_freq = (read_tsc() - tsc0) * ratio;
     }
->>>>>>> working-lab11
     // LAB 5: Your code here
 
     return cpu_freq;
@@ -420,8 +380,6 @@ uint64_t
 pmtimer_cpu_frequency(void) {
     static uint64_t cpu_freq;
 
-<<<<<<< HEAD
-=======
     if (!cpu_freq)
     {
         uint32_t ratio = 100;
@@ -446,7 +404,6 @@ pmtimer_cpu_frequency(void) {
 
         cpu_freq = (read_tsc() - tsc0) * PM_FREQ / cur_delta;
     }
->>>>>>> working-lab11
     // LAB 5: Your code here
 
     return cpu_freq;

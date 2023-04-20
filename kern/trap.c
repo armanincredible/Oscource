@@ -2,10 +2,7 @@
 #include <inc/x86.h>
 #include <inc/assert.h>
 #include <inc/string.h>
-<<<<<<< HEAD
 #include <inc/vsyscall.h>
-=======
->>>>>>> working-lab11
 
 #include <kern/pmap.h>
 #include <kern/trap.h>
@@ -17,16 +14,10 @@
 #include <kern/kclock.h>
 #include <kern/picirq.h>
 #include <kern/timer.h>
-<<<<<<< HEAD
-#include <kern/vsyscall.h>
-=======
->>>>>>> working-lab11
 #include <kern/traceopt.h>
 
 static struct Taskstate ts;
 
-<<<<<<< HEAD
-=======
 #ifdef CONFIG_KSPACE
 
     extern void clock_thdlr(void);
@@ -63,7 +54,6 @@ static struct Taskstate ts;
 
 #endif 
 
->>>>>>> working-lab11
 /* For debugging, so print_trapframe can distinguish between printing
  * a saved trapframe and printing the current trapframe and print some
  * additional information in the latter case */
@@ -147,20 +137,15 @@ trapname(int trapno) {
 void
 trap_init(void) {
     // LAB 4: Your code here
-<<<<<<< HEAD
-=======
 
     clock_idt_init();
 
->>>>>>> working-lab11
     // LAB 5: Your code here
 
 
     /* Insert trap handlers into IDT */
     // LAB 8: Your code here
 
-<<<<<<< HEAD
-=======
     // WARNING TODO AAAAA
 
     idt[T_DIVIDE]  = GATE(0, GD_KT, (uint64_t) (&divide_thdlr),  0);
@@ -190,7 +175,6 @@ trap_init(void) {
     idt[IRQ_KBD    + IRQ_OFFSET] = GATE(0, GD_KT, (&kbd_thdlr),    0);
     idt[IRQ_SERIAL + IRQ_OFFSET] = GATE(0, GD_KT, (&serial_thdlr), 0);
 
->>>>>>> working-lab11
     /* Setup #PF handler dedicated stack
      * It should be switched on #PF because
      * #PF is the only kind of exception that
@@ -204,8 +188,6 @@ trap_init(void) {
     trap_init_percpu();
 }
 
-<<<<<<< HEAD
-=======
 void clock_idt_init(void)
 {
     #ifdef CONFIG_KSPACE
@@ -219,7 +201,6 @@ void clock_idt_init(void)
     #endif 
 }
 
->>>>>>> working-lab11
 /* Initialize and load the per-CPU TSS and IDT */
 void
 trap_init_percpu(void) {
@@ -320,12 +301,9 @@ print_regs(struct PushRegs *regs) {
 
 static void
 trap_dispatch(struct Trapframe *tf) {
-<<<<<<< HEAD
-=======
 
     // cprintf("trap_dispatch(): trapno %ld\n", tf->tf_trapno - IRQ_OFFSET);
 
->>>>>>> working-lab11
     switch (tf->tf_trapno) {
     case T_SYSCALL:
         tf->tf_regs.reg_rax = syscall(
@@ -340,17 +318,11 @@ trap_dispatch(struct Trapframe *tf) {
     case T_PGFLT:
         /* Handle processor exceptions. */
         // LAB 9: Your code here.
-<<<<<<< HEAD
-        return;
-    case T_BRKPT:
-        // LAB 8: Your code here
-=======
         page_fault_handler(tf);
         return;
     case T_BRKPT:
         // LAB 8: Your code here
         monitor(tf);
->>>>>>> working-lab11
         return;
     case IRQ_OFFSET + IRQ_SPURIOUS:
         /* Handle spurious interrupts
@@ -363,14 +335,6 @@ trap_dispatch(struct Trapframe *tf) {
         return;
     case IRQ_OFFSET + IRQ_TIMER:
     case IRQ_OFFSET + IRQ_CLOCK:
-<<<<<<< HEAD
-        // LAB 12: Your code here
-        // LAB 5: Your code here
-        // LAB 4: Your code here
-        return;
-        /* Handle keyboard and serial interrupts. */
-        // LAB 11: Your code here
-=======
         // LAB 5: Your code here
         // LAB 4: Your code here
         {
@@ -397,7 +361,6 @@ trap_dispatch(struct Trapframe *tf) {
             kbd_intr();
             return;
         }
->>>>>>> working-lab11
     default:
         print_trapframe(tf);
         if (!(tf->tf_cs & 3))
@@ -491,11 +454,6 @@ trap(struct Trapframe *tf) {
      * scheduled, so we should return to the current environment
      * if doing so makes sense */
     if (curenv && curenv->env_status == ENV_RUNNING)
-<<<<<<< HEAD
-        env_run(curenv);
-    else
-        sched_yield();
-=======
     {
         // cprintf("end of trap(), env_run called \n");
         env_run(curenv);
@@ -505,7 +463,6 @@ trap(struct Trapframe *tf) {
         // cprintf("end of trap(), shed_yield called \n");
         sched_yield();
     }
->>>>>>> working-lab11
 }
 
 static _Noreturn void
@@ -513,10 +470,6 @@ page_fault_handler(struct Trapframe *tf) {
     // LAB 9: Your code here:
 
     uintptr_t cr2 = rcr2();
-<<<<<<< HEAD
-    (void)cr2;
-=======
->>>>>>> working-lab11
 
     /* Handle kernel-mode page faults. */
     if (!(tf->tf_err & FEC_U)) {
@@ -558,9 +511,6 @@ page_fault_handler(struct Trapframe *tf) {
 
     static_assert(UTRAP_RIP == offsetof(struct UTrapframe, utf_rip), "UTRAP_RIP should be equal to RIP offset");
     static_assert(UTRAP_RSP == offsetof(struct UTrapframe, utf_rsp), "UTRAP_RSP should be equal to RSP offset");
-<<<<<<< HEAD
-
-=======
     
 
     if (!curenv->env_pgfault_upcall)
@@ -570,31 +520,11 @@ page_fault_handler(struct Trapframe *tf) {
         user_mem_assert(curenv, (const void*) (USER_EXCEPTION_STACK_TOP - PAGE_SIZE), PAGE_SIZE, PROT_R | PROT_W);
         env_destroy(curenv);
     }
->>>>>>> working-lab11
 
     /* Force allocation of exception stack page to prevent memcpy from
      * causing pagefault during another pagefault */
     // LAB 9: Your code here:
 
-<<<<<<< HEAD
-    /* Assert existance of exception stack using user mem assert */
-    // LAB 9: Your code here:
-
-    /* Build local copy of UTrapframe */
-    // LAB 9: Your code here:
-
-    /* And then copy it userspace (nosan_memcpy) */
-    // LAB 9: Your code here:
-
-    /* Reset in_page_fault flag */
-    // LAB 9: Your code here:
-
-    /* Rerun current environment */
-    // LAB 9: Your code here:
-
-    while (1) {}
-}
-=======
     force_alloc_page(current_space, USER_EXCEPTION_STACK_TOP - PAGE_SIZE, MAX_ALLOCATION_CLASS);
 
     /* Assert existance of exception stack using user mem assert */
@@ -647,4 +577,3 @@ page_fault_handler(struct Trapframe *tf) {
 
     while (1) {}
 }
->>>>>>> working-lab11

@@ -44,11 +44,6 @@ static struct Command commands[] = {
         {"kerninfo", "Display information about the kernel", mon_kerninfo},
         {"backtrace", "Print stack backtrace", mon_backtrace},
         {"dumpcmos", "Print CMOS contents", mon_dumpcmos},
-<<<<<<< HEAD
-};
-#define NCOMMANDS (sizeof(commands) / sizeof(commands[0]))
-
-=======
         {"timer_stop", "Print time since start and stop current timer", mon_stop},
         {"timer_start", "Start timer with name is typed by user", mon_start},
         {"timer_cpu_frequency", "Print cpu frequency what measured by typed timer", mon_frequency},
@@ -65,7 +60,6 @@ int print_my_text (int argc, char **argv, struct Trapframe *tf)
     return 0;
 }
 
->>>>>>> working-lab11
 /* Implementations of basic kernel monitor commands */
 
 int
@@ -92,8 +86,6 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf) {
 int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf) {
     // LAB 2: Your code here
-<<<<<<< HEAD
-=======
     uint64_t rbp = 0;
     uint64_t rip = 0;
     struct Ripdebuginfo info = {};
@@ -121,15 +113,12 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf) {
         rbp = *((uint64_t*)rbp);
         //rip = *((uint64_t*)rbp + 1);
     }
->>>>>>> working-lab11
 
     return 0;
 }
 
 int
 mon_dumpcmos(int argc, char **argv, struct Trapframe *tf) {
-<<<<<<< HEAD
-=======
 
     for (unsigned int i = 0; i < 128; i++)
     {
@@ -141,7 +130,6 @@ mon_dumpcmos(int argc, char **argv, struct Trapframe *tf) {
         cprintf (" %x", data);
     }
     cprintf ("\n");
->>>>>>> working-lab11
     // Dump CMOS memory in the following format:
     // 00: 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF
     // 10: 00 ..
@@ -155,8 +143,6 @@ mon_dumpcmos(int argc, char **argv, struct Trapframe *tf) {
 /* Implement timer_start (mon_start), timer_stop (mon_stop), timer_freq (mon_frequency) commands. */
 // LAB 5: Your code here:
 
-<<<<<<< HEAD
-=======
 int mon_start(int argc, char **argv, struct Trapframe *tf)
 {
     if (argc == 2)
@@ -182,26 +168,20 @@ int mon_frequency(int argc, char **argv, struct Trapframe *tf)
     }
     return -1;
 }
->>>>>>> working-lab11
 /* Implement memory (mon_memory) command.
  * This command should call dump_memory_lists()
  */
 // LAB 6: Your code here
 
-<<<<<<< HEAD
-=======
 int mon_memory(int argc, char **argv, struct Trapframe *tf)
 {
     dump_memory_lists();
     return 0;
 }
->>>>>>> working-lab11
 /* Implement mon_pagetable() and mon_virt()
  * (using dump_virtual_tree(), dump_page_table())*/
 // LAB 7: Your code here
 
-<<<<<<< HEAD
-=======
 int mon_virt(int argc, char **argv, struct Trapframe *tf)
 {
     dump_virtual_tree(current_space->root, current_space->root->class);
@@ -214,7 +194,6 @@ int mon_pagetable(int argc, char **argv, struct Trapframe *tf)
     return 0;
 }
 
->>>>>>> working-lab11
 /* Kernel monitor command interpreter */
 
 static int

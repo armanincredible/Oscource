@@ -143,11 +143,7 @@ i386_init(void) {
 
     /* Lab 6 memory management initialization functions */
     init_memory();
-<<<<<<< HEAD
-
-=======
     
->>>>>>> working-lab11
     pic_init();
     timers_init();
 
@@ -160,10 +156,7 @@ i386_init(void) {
 
     /* Choose the timer used for scheduling: hpet or pit */
     timers_schedule("hpet0");
-<<<<<<< HEAD
-=======
     //hpet_print_struct();
->>>>>>> working-lab11
 
 #ifdef CONFIG_KSPACE
     /* Touch all you want */
@@ -184,14 +177,10 @@ i386_init(void) {
     ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
     /* Touch all you want. */
-<<<<<<< HEAD
-    ENV_CREATE(user_icode, ENV_TYPE_USER);
-=======
 
     ENV_CREATE(user_icode, ENV_TYPE_USER);
     //ENV_CREATE(user_testshell, ENV_TYPE_USER);
     ENV_CREATE(user_spawnhello, ENV_TYPE_USER);
->>>>>>> working-lab11
 #endif /* TEST* */
 #endif
 
@@ -200,10 +189,7 @@ i386_init(void) {
 
     /* Schedule and run the first user environment! */
     sched_yield();
-<<<<<<< HEAD
-=======
     monitor(NULL);
->>>>>>> working-lab11
 }
 
 /* Variable panicstr contains argument to first call to panic; used as flag

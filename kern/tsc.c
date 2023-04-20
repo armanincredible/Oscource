@@ -204,8 +204,6 @@ timer_start(const char *name) {
     (void)timer_id;
     (void)timer;
     (void)freq;
-<<<<<<< HEAD
-=======
     if (!name || timer_started)
     {
         print_timer_error();
@@ -223,13 +221,10 @@ timer_start(const char *name) {
         }
     }
     print_timer_error();
->>>>>>> working-lab11
 }
 
 void
 timer_stop(void) {
-<<<<<<< HEAD
-=======
     if (timer_started && timer_id)
     {
         print_time ((read_tsc() - timer) / freq);
@@ -240,13 +235,10 @@ timer_stop(void) {
     {
         print_timer_error();
     }
->>>>>>> working-lab11
 }
 
 void
 timer_cpu_frequency(const char *name) {
-<<<<<<< HEAD
-=======
     if (!name)
     {
         print_timer_error();
@@ -260,5 +252,4 @@ timer_cpu_frequency(const char *name) {
         }
     }
     print_timer_error();
->>>>>>> working-lab11
 }

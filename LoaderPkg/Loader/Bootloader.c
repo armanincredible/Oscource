@@ -1004,12 +1004,8 @@ UefiMain (
   UINTN              EntryPoint;
   VOID               *GateData;
 
-<<<<<<< HEAD
-#if 1 ///< Uncomment to await debugging
-=======
 
 #if 0 ///< Uncomment to await debugging
->>>>>>> working-lab11
   volatile BOOLEAN   Connected;
   DEBUG ((DEBUG_INFO, "JOS: Awaiting debugger connection\n"));
 

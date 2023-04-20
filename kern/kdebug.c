@@ -28,8 +28,6 @@ load_kernel_dwarf_info(struct Dwarf_Addrs *addrs) {
     addrs->pubtypes_end = (uint8_t *)(uefi_lp->DebugPubtypesEnd);
 }
 
-<<<<<<< HEAD
-=======
 static int load_section(const uint8_t **start, const uint8_t **end, const char* name, const uint8_t *binary)
 {
     struct Elf *elf    = (struct Elf *)binary;
@@ -54,7 +52,6 @@ static int load_section(const uint8_t **start, const uint8_t **end, const char* 
     return -1;
 }
 
->>>>>>> working-lab11
 void
 load_user_dwarf_info(struct Dwarf_Addrs *addrs) {
     assert(curenv);
@@ -77,11 +74,6 @@ load_user_dwarf_info(struct Dwarf_Addrs *addrs) {
             {&addrs->pubtypes_end, &addrs->pubtypes_begin, ".debug_pubtypes"},
     };
     (void)sections;
-<<<<<<< HEAD
-
-    memset(addrs, 0, sizeof(*addrs));
-
-=======
     memset(addrs, 0, sizeof(*addrs));
 
     for (size_t i = 0; i < sizeof(sections) / sizeof(*sections); i++)
@@ -94,7 +86,6 @@ load_user_dwarf_info(struct Dwarf_Addrs *addrs) {
 
     }
 
->>>>>>> working-lab11
     /* Load debug sections from curenv->binary elf image */
     // LAB 8: Your code here
 }
@@ -130,11 +121,6 @@ debuginfo_rip(uintptr_t addr, struct Ripdebuginfo *info) {
      * depending on whether addr is pointing to userspace
      * or kernel space */
     // LAB 8: Your code here:
-<<<<<<< HEAD
-
-    struct Dwarf_Addrs addrs;
-    load_kernel_dwarf_info(&addrs);
-=======
     struct Dwarf_Addrs addrs;
 
     struct AddressSpace* tmp =  switch_address_space(&kspace);
@@ -152,7 +138,6 @@ debuginfo_rip(uintptr_t addr, struct Ripdebuginfo *info) {
     }
 
     switch_address_space(tmp);
->>>>>>> working-lab11
 
     Dwarf_Off offset = 0, line_offset = 0;
     int res = info_by_address(&addrs, addr, &offset);
@@ -169,8 +154,6 @@ debuginfo_rip(uintptr_t addr, struct Ripdebuginfo *info) {
     * Hint: use line_for_address from kern/dwarf_lines.c */
 
     // LAB 2: Your res here:
-<<<<<<< HEAD
-=======
     int num_line = 0;
     res = line_for_address (&addrs, addr - 5, line_offset, &num_line);
     if (res < 0)
@@ -178,7 +161,6 @@ debuginfo_rip(uintptr_t addr, struct Ripdebuginfo *info) {
         goto error;
     }
     info->rip_line       = num_line;
->>>>>>> working-lab11
 
     /* Find function name corresponding to given address.
     * Hint: note that we need the address of `call` instruction, but rip holds
@@ -186,10 +168,6 @@ debuginfo_rip(uintptr_t addr, struct Ripdebuginfo *info) {
     * Hint: use function_by_info from kern/dwarf.c
     * Hint: info->rip_fn_name can be not NULL-terminated,
     * string returned by function_by_info will always be */
-<<<<<<< HEAD
-
-    // LAB 2: Your res here:
-=======
     
     char* str = NULL;
     uintptr_t offset_func_start = 0;
@@ -201,7 +179,6 @@ debuginfo_rip(uintptr_t addr, struct Ripdebuginfo *info) {
 
     info->rip_fn_addr    =  offset_func_start;
     strcpy (info->rip_fn_name, str);
->>>>>>> working-lab11
 
 error:
     return res;
@@ -217,8 +194,6 @@ find_function(const char *const fname) {
 
     // LAB 3: Your code here:
 
-<<<<<<< HEAD
-=======
     struct Dwarf_Addrs addrs = {};
     load_kernel_dwarf_info(&addrs);
     uintptr_t offset = 0;
@@ -252,6 +227,5 @@ find_function(const char *const fname) {
             }
         }
     }
->>>>>>> working-lab11
     return 0;
 }

@@ -6,10 +6,6 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 #include <inc/elf.h>
-<<<<<<< HEAD
-#include <inc/vsyscall.h>
-=======
->>>>>>> working-lab11
 
 #include <kern/env.h>
 #include <kern/pmap.h>
@@ -20,10 +16,6 @@
 #include <kern/macro.h>
 #include <kern/pmap.h>
 #include <kern/traceopt.h>
-<<<<<<< HEAD
-#include <kern/vsyscall.h>
-=======
->>>>>>> working-lab11
 
 /* Currently active environment */
 struct Env *curenv = NULL;
@@ -37,12 +29,6 @@ struct Env *envs = env_array;
 struct Env *envs = NULL;
 #endif
 
-<<<<<<< HEAD
-/* Virtual syscall page address */
-volatile int *vsys;
-
-=======
->>>>>>> working-lab11
 /* Free environment list
  * (linked by Env->env_link) */
 static struct Env *env_free_list;
@@ -102,10 +88,6 @@ envid2env(envid_t envid, struct Env **env_store, bool need_check_perm) {
  */
 void
 env_init(void) {
-<<<<<<< HEAD
-    // LAB 12: Your code here
-
-=======
 #ifndef CONFIG_KSPACE
     if (current_space != NULL)
     {
@@ -127,7 +109,6 @@ env_init(void) {
         envs[i].env_id     = 0;
     }
     envs[NENV].env_link = NULL;
->>>>>>> working-lab11
     /* kzalloc_region only works with current_space != NULL */
 
     /* Allocate envs array with kzalloc_region
@@ -200,18 +181,12 @@ env_alloc(struct Env **newenv_store, envid_t parent_id, enum EnvType type) {
     env->env_tf.tf_es = GD_KD;
     env->env_tf.tf_ss = GD_KD;
     env->env_tf.tf_cs = GD_KT;
-<<<<<<< HEAD
-
-    // LAB 3: Your code here:
-    //static uintptr_t stack_area_start = 0x2000000;
-=======
     //env->env_tf.tf_rsp = KERN_STACK_TOP;
 
     // LAB 3: Your code here:
     static uintptr_t stack_top = 0x2000000;
     env->env_tf.tf_rsp = stack_top;
     stack_top += 8000;
->>>>>>> working-lab11
 #else
     env->env_tf.tf_ds = GD_UD | 3;
     env->env_tf.tf_es = GD_UD | 3;
@@ -233,12 +208,8 @@ env_alloc(struct Env **newenv_store, envid_t parent_id, enum EnvType type) {
     env_free_list = env->env_link;
     *newenv_store = env;
 
-<<<<<<< HEAD
-    if (trace_envs) cprintf("[%08x] new env %08x\n", curenv ? curenv->env_id : 0, env->env_id);
-=======
     int id = curenv ? curenv->env_id : 0;
     if (trace_envs) cprintf("[%08x] new env %08x\n", id, env->env_id);
->>>>>>> working-lab11
     return 0;
 }
 
@@ -250,11 +221,6 @@ env_alloc(struct Env **newenv_store, envid_t parent_id, enum EnvType type) {
 static int
 bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_start, uintptr_t image_end) {
     // LAB 3: Your code here:
-<<<<<<< HEAD
-
-    /* NOTE: find_function from kdebug.c should be used */
-
-=======
     if (sizeof(struct Elf) > size)
     {
         return -E_INVAL;
@@ -332,7 +298,6 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
         }
     }
   // LAB 3 code end
->>>>>>> working-lab11
     return 0;
 }
 
@@ -387,8 +352,6 @@ bind_functions(struct Env *env, uint8_t *binary, size_t size, uintptr_t image_st
 static int
 load_icode(struct Env *env, uint8_t *binary, size_t size) {
     // LAB 3: Your code here
-<<<<<<< HEAD
-=======
     if (binary == NULL || env == NULL || size == 0){
         return -E_INVAL;
     }
@@ -482,7 +445,6 @@ load_icode(struct Env *env, uint8_t *binary, size_t size) {
     }
 #endif
 
->>>>>>> working-lab11
     // LAB 8: Your code here
     return 0;
 }
@@ -497,10 +459,6 @@ void
 env_create(uint8_t *binary, size_t size, enum EnvType type) {
     // LAB 8: Your code here
     // LAB 3: Your code here
-<<<<<<< HEAD
-    // LAB 10: Your code here
-
-=======
     struct Env* env = NULL;
     int err = env_alloc (&env, 0, type);
     if (err)
@@ -521,7 +479,6 @@ env_create(uint8_t *binary, size_t size, enum EnvType type) {
     {
         panic("env_create: %i", err);
     }
->>>>>>> working-lab11
 }
 
 
@@ -530,12 +487,8 @@ void
 env_free(struct Env *env) {
 
     /* Note the environment's demise. */
-<<<<<<< HEAD
-    if (trace_envs) cprintf("[%08x] free env %08x\n", curenv ? curenv->env_id : 0, env->env_id);
-=======
     int id = curenv ? curenv->env_id : 0;
     if (trace_envs) cprintf("[%08x] free env %08x\n", id, env->env_id);
->>>>>>> working-lab11
 
 #ifndef CONFIG_KSPACE
     /* If freeing the current environment, switch to kern_pgdir
@@ -566,9 +519,6 @@ env_destroy(struct Env *env) {
      * it traps to the kernel. */
 
     // LAB 3: Your code here
-<<<<<<< HEAD
-    // LAB 8: Your code here (set in_page_fault = 0)
-=======
 
     if (env == curenv)
     {
@@ -582,7 +532,6 @@ env_destroy(struct Env *env) {
 
     // LAB 8: Your code here (set in_page_fault = 0)
     in_page_fault = 0;
->>>>>>> working-lab11
 }
 
 #ifdef CONFIG_KSPACE
@@ -667,12 +616,6 @@ env_run(struct Env *env) {
     }
 
     // LAB 3: Your code here
-<<<<<<< HEAD
-    // LAB 8: Your code here
-
-    while(1) {}
-}
-=======
     // LAB 8: Your code here+
 
     if (curenv != env)
@@ -688,4 +631,3 @@ env_run(struct Env *env) {
 
     env_pop_tf(&curenv->env_tf);
 }
->>>>>>> working-lab11

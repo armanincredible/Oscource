@@ -116,11 +116,8 @@ KERN_BINFILES :=	user/hello \
 			user/spawnhello \
 			user/testpteshare \
 			user/testshell \
-<<<<<<< HEAD
 			user/date \
 			user/vdate \
-=======
->>>>>>> working-lab11
 			user/bounds \
 			user/implicitconv \
 			user/signedoverflow

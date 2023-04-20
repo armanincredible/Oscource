@@ -82,8 +82,6 @@ _alltraps:
 # all trap handlers' entry points
 # (Look up their list in inc/trap.h)
 
-<<<<<<< HEAD
-=======
 
 // LAB 8 code
 TRAPHANDLER_NOEC(divide_thdlr, T_DIVIDE)
@@ -112,5 +110,4 @@ TRAPHANDLER_NOEC(timer_thdlr, (IRQ_OFFSET + IRQ_TIMER))
 TRAPHANDLER_NOEC(kbd_thdlr, IRQ_KBD + IRQ_OFFSET)
 TRAPHANDLER_NOEC(serial_thdlr, IRQ_SERIAL + IRQ_OFFSET)
 
->>>>>>> working-lab11
 #endif
