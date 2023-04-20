@@ -10,6 +10,8 @@
 # so that they can be used in C as if they were ordinary global arrays
 .globl envs
 .set envs, UENVS
+.globl vsys
+.set vsys, UVSYS
 .globl uvpt
 .set uvpt, UVPT
 .globl uvpd

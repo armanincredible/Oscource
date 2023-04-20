@@ -14,6 +14,7 @@
 #include <kern/kclock.h>
 #include <kern/picirq.h>
 #include <kern/timer.h>
+#include <kern/vsyscall.h>
 #include <kern/traceopt.h>
 
 static struct Taskstate ts;
@@ -339,6 +340,8 @@ trap_dispatch(struct Trapframe *tf) {
         // LAB 4: Your code here
         {
             // rtc_timer_pic_handle();
+
+            vsys[VSYS_gettime] = gettime();
 
             assert(timer_for_schedule);
             timer_for_schedule->handle_interrupts();

@@ -6,6 +6,7 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 #include <inc/elf.h>
+#include <inc/vsyscall.h>
 
 #include <kern/env.h>
 #include <kern/pmap.h>
@@ -28,6 +29,9 @@ struct Env *envs = env_array;
 /* All environments */
 struct Env *envs = NULL;
 #endif
+
+/* Virtual syscall page address */
+volatile int *vsys;
 
 /* Free environment list
  * (linked by Env->env_link) */
@@ -89,13 +93,23 @@ envid2env(envid_t envid, struct Env **env_store, bool need_check_perm) {
 void
 env_init(void) {
 #ifndef CONFIG_KSPACE
+
+    if (current_space != NULL)
+    {
+        vsys = kzalloc_region(UVSYS_SIZE);
+    }
+    vsys = ROUNDDOWN(vsys, PAGE_SIZE);
+    int r = map_region(&kspace, UVSYS, &kspace, (uintptr_t) vsys, ROUNDUP(UVSYS_SIZE, PAGE_SIZE), PROT_R | PROT_USER_);
+    if (r < 0) panic("env_init: %i\n", r);
+
+
     if (current_space != NULL)
     {
         envs = kzalloc_region(UENVS_SIZE);
     }
     envs = ROUNDDOWN(envs, PAGE_SIZE);
-    int r = map_region(&kspace, UENVS, &kspace, (uintptr_t)envs, ROUNDUP(UENVS_SIZE, PAGE_SIZE), PROT_R | PROT_USER_);
-    //if (r < 0) panic("env_init: %i\n", r);
+    r = map_region(&kspace, UENVS, &kspace, (uintptr_t)envs, ROUNDUP(UENVS_SIZE, PAGE_SIZE), PROT_R | PROT_USER_);
+    if (r < 0) panic("env_init: %i\n", r);
 #endif
 
     memset (envs, 0, NENV * sizeof (struct Env));
