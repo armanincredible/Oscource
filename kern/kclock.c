@@ -122,6 +122,7 @@ gettime(void) {
 }
 
 
+void 
 rtc_timer_init(void) {
     nmi_disable();
 
