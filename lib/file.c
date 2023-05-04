@@ -117,16 +117,27 @@ devfile_read(struct Fd *fd, void *buf, size_t n) {
     {
         return -E_INVAL;
     }
-    int r;
-	fsipcbuf.read.req_fileid = fd->fd_file.id;
-	fsipcbuf.read.req_n = n;
-	if ((r = fsipc(FSREQ_READ, NULL)) < 0)
-		return r;
+    size_t readed = 0;
+    ssize_t ret = 0;
+    while(n > 0) {
 
-	assert(r <= n);
-	assert(r <= PAGE_SIZE);
-	memmove(buf, &fsipcbuf, r);
-	return r;
+        fsipcbuf.read.req_fileid = fd->fd_file.id;
+        fsipcbuf.read.req_n = MIN(n, sizeof(fsipcbuf.readRet.ret_buf));
+        ret = fsipc(FSREQ_READ, NULL);
+
+        if(ret > 0) {
+            memmove(buf, fsipcbuf.readRet.ret_buf, ret);
+        } else if (ret == 0) {
+            return readed;
+        } else {
+            return ret;
+        }
+        buf += ret;
+        n -= ret;
+        readed += ret;
+    }
+    return readed;
+
 }
 
 /* Write at most 'n' bytes from 'buf' to 'fd' at the current seek position.
@@ -145,6 +156,23 @@ devfile_write(struct Fd *fd, const void *buf, size_t n) {
     {
         return -E_INVAL;
     }
+
+    size_t written = 0;
+    ssize_t ret = 0;
+    while(n != 0) {
+        fsipcbuf.write.req_fileid = fd->fd_file.id;
+        fsipcbuf.write.req_n = MIN(n, sizeof(fsipcbuf.write.req_buf));
+        memmove(fsipcbuf.write.req_buf, buf, fsipcbuf.write.req_n);
+        int res = fsipc(FSREQ_WRITE, NULL);
+        if(res < 0) return res;
+        if(res == 0) { return written; }
+        written += res;
+        buf += res;
+        n -= res;
+    }
+    return written;
+
+
     fsipcbuf.write.req_fileid = fd->fd_file.id;
 	fsipcbuf.write.req_n = n;
 	memmove(fsipcbuf.write.req_buf, buf, n);
