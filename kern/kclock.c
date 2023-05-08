@@ -149,3 +149,8 @@ rtc_check_status(void) {
 
     //return 0;
 }
+
+int wait()
+{
+    
+}

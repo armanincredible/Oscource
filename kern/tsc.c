@@ -253,3 +253,12 @@ timer_cpu_frequency(const char *name) {
     }
     print_timer_error();
 }
+
+void pit_wait(uint32_t ms)
+{
+    uint32_t cur = 0;
+    while ((read_tsc() - cur) * 1000 / tsc_calibrate() < ms)
+    {
+        ;
+    }
+}

@@ -36,7 +36,9 @@ KERN_SRCFILES := kern/bootstrap.S \
 			kern/uefi.c \
 			kern/uefiasm.S \
 			kern/spinlock.c \
-			kern/acpi.c
+			kern/acpi.c		\
+			kern/cpu.c	\
+			kern/apic.c
 
 ifeq ($(CONFIG_KSPACE),y)
 KERN_SRCFILES += kern/alloc.c

@@ -115,3 +115,23 @@ get_fadt(void) {
 
     return kfadt;
 }
+
+MADT *
+get_madt(void) {
+    // LAB 5: Your code here
+    // (use acpi_find_table)
+    // HINT: ACPI table signatures are
+    //       not always as their names
+
+    static MADT *madt;
+    if (!madt)
+    {
+        madt = acpi_find_table("APIC");
+        if (!madt)
+        {
+            panic("get_madt:didnt find APIC");
+        }
+    }
+
+    return madt;
+}

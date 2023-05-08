@@ -61,6 +61,57 @@ typedef struct {
     uint8_t page_protection;
 } HPET;
 
+typedef struct {
+    ACPISDTHeader h;
+    uint32_t local_apic_address;
+    uint32_t flags;
+} MADT;
+
+typedef struct {
+    uint8_t entry_type;
+    uint8_t record_length;
+} MADT_RECORD_HEADER;
+
+//Entry Type 0: Processor Local APIC
+typedef struct {
+    MADT_RECORD_HEADER header;
+    uint8_t acpi_proc_id;
+    uint8_t apic_id;
+    uint32_t flags;
+} MADT_RECORD_LOCAL_APIC;
+
+//Entry Type 1: I/O APIC
+typedef struct {
+    MADT_RECORD_HEADER header;
+    uint8_t io_apic_id;
+    uint8_t reserved;
+    uint32_t io_apic_ptr;
+    uint32_t glb_sys_int_base;
+} MADT_RECORD_IO_APIC;
+
+//Entry Type 2: IO/APIC Interrupt Source Override
+typedef struct {
+    MADT_RECORD_HEADER header;
+    uint8_t bus_source;
+    uint8_t irq_source;
+    uint32_t glb_sys_int;
+    uint16_t flags;
+} MADT_RECORD_2TYPE;
+
+//Entry Type 5: Local APIC Address Override
+typedef struct {
+    MADT_RECORD_HEADER header;
+    uint16_t reserved;
+    uint64_t ph_ptr_loc_apic;
+} MADT_RECORD_ADDRESS_OVERRIDE;
+
+enum
+{
+    APIC_TYPE_LOCAL_APIC,
+    APIC_TYPE_IO_APIC,
+    APIC_TYPE_ADDRESS_OVERRIDE = 5
+};
+
 #define HPET_LEG_RT_CAP         (1 << 15)
 #define HPET_LEG_RT_CNF         (1 << 1)
 #define HPET_ENABLE_CNF         (1 << 0)
@@ -156,5 +207,6 @@ bool check_sum(ACPISDTHeader *tableHeader);
 void acpi_enable(void);
 void * acpi_find_table(const char *sign);
 FADT * get_fadt(void);
+MADT * get_madt(void);
 
 #endif

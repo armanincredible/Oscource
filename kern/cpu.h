@@ -24,4 +24,8 @@ static inline bool
 in_clock_interrupt(void) {
     return in_intr && in_clk_intr;
 }
+
+void detect_cores(void);
+void smp_init(void);
+
 #endif

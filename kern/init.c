@@ -144,6 +144,8 @@ i386_init(void) {
     /* Lab 6 memory management initialization functions */
     init_memory();
     
+    detect_cores();
+    smp_init();
     pic_init();
     timers_init();
 

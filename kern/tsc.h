@@ -46,5 +46,6 @@ uint64_t tsc_calibrate(void);
 void timer_start(const char *name);
 void timer_stop(void);
 void timer_cpu_frequency(const char *name);
+void pit_wait(uint32_t ms);
 
 #endif /* !JOS_KERN_TSC_H */
