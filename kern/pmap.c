@@ -12,6 +12,7 @@
 #include <kern/pmap.h>
 #include <kern/traceopt.h>
 #include <kern/trap.h>
+#include <kern/cpu.h>
 
 /*
  * Term "page" used here does not
@@ -45,6 +46,9 @@ static uintptr_t metaheaptop;
 static bool nx_supported = 1;
 /* 1GB pages are supported */
 static bool has_1gb_pages = 1;
+
+char load[PAGE_SIZE];
+//char warm[PAGE_SIZE];
 
 /* Kernel executable end virtual address */
 extern char end[];
@@ -837,6 +841,11 @@ propagate_pml4(struct AddressSpace *spc) {
     for (size_t i = 0; i < NENV; i++) {
         if (envs[i].env_status != ENV_FREE && &envs[i].address_space != spc)
             propagate_one_pml4(&envs[i].address_space, spc);
+    }
+
+    for (int i = 0; i < MAX_CPU; i++)
+    {
+        //propagate_one_pml4(&cpus[i].space, spc);
     }
 }
 
@@ -1842,6 +1851,19 @@ init_kspace(void) {
     memset(kspace.pml4, 0, CLASS_SIZE(0));
     kspace.pml4[PML4_INDEX(UVPT)] = kspace.cr3 | PTE_P | PTE_U;
     kspace.root = alloc_descriptor(INTERMEDIATE_NODE);
+
+    /*for (int i = 0; i < MAX_CPU; i++)
+    {
+        struct AddressSpace* space = &cpus[i].space;
+        
+        struct Page *page = alloc_page(0, ALLOC_BOOTMEM);
+        page_ref(page);
+        space->pml4 = KADDR(page2pa(page));
+        space->cr3 = page2pa(page);
+        memset(space->pml4, 0, CLASS_SIZE(0));
+        space->pml4[PML4_INDEX(UVPT)] = space->cr3 | PTE_P | PTE_U;
+        space->root = alloc_descriptor(INTERMEDIATE_NODE);
+    }*/
 }
 
 #ifdef SANITIZE_SHADOW_BASE
@@ -1951,10 +1973,17 @@ init_memory(void) {
 
     MAP_MSG(KERN_STACK_TOP - KERN_STACK_SIZE, PADDR(bootstack), KERN_STACK_SIZE);
     res = map_physical_region(&kspace, KERN_STACK_TOP - KERN_STACK_SIZE, 
-                                       PADDR(bootstack), 
-                                       KERN_STACK_SIZE, 
-                                       PROT_R | PROT_W); 
+                                        PADDR(bootstack),
+                                        KERN_STACK_SIZE,
+                                        PROT_R | PROT_W); 
     assert(!res);
+
+    /*MAP_MSG(aprealbootstack, PADDR(aprealbootstack), KERN_STACK_SIZE);
+    res = map_physical_region(&kspace, aprealbootstack, 
+                                        PADDR(aprealbootstack),
+                                        KERN_STACK_SIZE,
+                                        PROT_R | PROT_W); 
+    assert(!res);*/
 
     MAP_MSG(KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE, PADDR(pfstack), KERN_PF_STACK_SIZE);
     res = map_physical_region(&kspace, KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE, 
@@ -2021,6 +2050,7 @@ init_memory(void) {
     platform_asan_unpoison((void*) (KERN_STACK_TOP - KERN_STACK_SIZE), KERN_STACK_SIZE);
 #endif
     
+    detect_cores();
 
     /* Traps needs to be initiallized here
      * to alloc #PF to be handled during lazy allocation */
@@ -2066,6 +2096,10 @@ init_memory(void) {
     if(map_physical_region(&kspace, X86ADDR(KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE), PADDR(pfstack), KERN_PF_STACK_SIZE, PROT_R | PROT_W)) 
         panic("Init memory: mapping [X86ADDR(KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE), KERN_PF_STACK_TOP] unsuccessful,"); 
 
+    if(map_physical_region(&kspace, load, START_AP_PTR, PAGE_SIZE, PROT_X |PROT_R | PROT_W)) 
+        panic("Init memory: mapping [X86ADDR(KERN_PF_STACK_TOP - KERN_PF_STACK_SIZE), KERN_PF_STACK_TOP] unsuccessful,"); 
+
+    //map_physical_region(&kspace, warm, (0x40 << 4 | 0x67), PAGE_SIZE, PROT_R | PROT_W);
 
     if (trace_memory_more) dump_page_table(kspace.pml4);
 
@@ -2079,6 +2113,23 @@ init_memory(void) {
         platform_asan_unpoison((void*) (USER_STACK_TOP - USER_STACK_SIZE), USER_STACK_SIZE);
         platform_asan_unpoison((void*) (USER_EXCEPTION_STACK_TOP - USER_EXCEPTION_STACK_SIZE), USER_EXCEPTION_STACK_SIZE);
     #endif 
+}
+
+void add_ap_stacks_mapping()
+{
+    extern uint8_t numcore;
+    int res = 0;
+    uintptr_t offset = KERN_STACK_SIZE + KERN_STACK_GAP;
+    uintptr_t kern_i_stack_top = KERN_STACK_TOP - offset;
+    for (uint8_t i = 0; i < MAX_CPU - 1; i++)
+    {
+        res = map_physical_region(&kspace, X86ADDR(kern_i_stack_top - KERN_STACK_SIZE), 
+                                        PADDR(bootstack - kern_i_stack_top + KERN_STACK_TOP), 
+                                        KERN_STACK_SIZE, 
+                                        PROT_R | PROT_W); 
+        assert(!res);
+        kern_i_stack_top -= offset;
+    }
 }
 
 static uintptr_t user_mem_check_addr;

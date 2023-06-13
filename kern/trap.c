@@ -5,6 +5,7 @@
 #include <inc/vsyscall.h>
 
 #include <kern/pmap.h>
+#include <kern/cpu.h>
 #include <kern/trap.h>
 #include <kern/console.h>
 #include <kern/monitor.h>
@@ -16,8 +17,6 @@
 #include <kern/timer.h>
 #include <kern/vsyscall.h>
 #include <kern/traceopt.h>
-
-static struct Taskstate ts;
 
 #ifdef CONFIG_KSPACE
 
@@ -79,6 +78,9 @@ struct Pseudodesc idt_pd = {sizeof(idt) - 1, (uint64_t)idt};
  * In particular, the last argument to the SEG macro used in the
  * definition of gdt specifies the Descriptor Privilege Level (DPL)
  * of that descriptor: 0 for kernel and 3 for user. */
+
+#define SEG_TSS_NULL_TWICE SEG_NULL, SEG_NULL
+#define SEG_TSS_NULL_N_CPU SEG_TSS_NULL_TWICE, SEG_TSS_NULL_TWICE, SEG_TSS_NULL_TWICE, SEG_TSS_NULL_TWICE, SEG_TSS_NULL_TWICE, SEG_TSS_NULL_TWICE, SEG_TSS_NULL_TWICE
 struct Segdesc32 gdt[2 * NCPU + 7] = {
         /* 0x0 - unused (always faults -- for trapping NULL far pointers) */
         SEG_NULL,
@@ -98,7 +100,11 @@ struct Segdesc32 gdt[2 * NCPU + 7] = {
      * in trap_init_percpu() */
         [GD_TSS0 >> 3] = SEG_NULL,
         [(GD_TSS0 >> 3) + 1] = SEG_NULL, /* last 8 bytes of the tss since tss is 16 bytes long */
+
+        //SEG_TSS_NULL_N_CPU
 };
+#undef SEG_TSS_NULL_TWICE
+#undef SEG_TSS_NULL_N_CPU
 
 struct Pseudodesc gdt_pd = {sizeof(gdt) - 1, (unsigned long)gdt};
 
@@ -209,6 +215,12 @@ trap_init_percpu(void) {
 
     lgdt(&gdt_pd);
 
+    cprintf("start trap cpu init\n");
+
+    int i = thiscpu->cpu_id;
+    uintptr_t offset = KERN_STACK_SIZE + KERN_STACK_GAP;
+    static uintptr_t kern_i_stack_top = KERN_STACK_TOP;
+
     /* The kernel never uses GS or FS,
      * so we leave those set to the user data segment
      *
@@ -232,18 +244,21 @@ trap_init_percpu(void) {
 
     /* Setup a TSS so that we get the right stack
      * when we trap to the kernel. */
-    ts.ts_rsp0 = KERN_STACK_TOP;
-    ts.ts_ist1 = KERN_PF_STACK_TOP;
+    thiscpu->cpu_ts.ts_rsp0 = kern_i_stack_top;
+    thiscpu->cpu_ts.ts_ist1 = KERN_PF_STACK_TOP;
 
     /* Initialize the TSS slot of the gdt. */
-    *(volatile struct Segdesc64 *)(&gdt[(GD_TSS0 >> 3)]) = SEG64_TSS(STS_T64A, ((uint64_t)&ts), sizeof(struct Taskstate), 0);
+    *(volatile struct Segdesc64 *)(&gdt[(GD_TSS0 >> 3) + i * 2]) = SEG64_TSS(STS_T64A, ((uint64_t)&thiscpu->cpu_ts), sizeof(struct Taskstate), 0);
 
     /* Load the TSS selector (like other segment selectors, the
      * bottom three bits are special; we leave them 0) */
-    ltr(GD_TSS0);
+    ltr(GD_TSS0 + i * 16);
 
     /* Load the IDT */
     lidt(&idt_pd);
+
+    i += 1;
+    kern_i_stack_top -= offset;
 }
 
 void

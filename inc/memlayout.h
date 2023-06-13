@@ -20,6 +20,9 @@
 #define GD_UT   0x28 /* user text */
 #define GD_UD   0x30 /* user data */
 #define GD_TSS0 0x38 /* Task segment selector for CPU 0 */
+#define GD_TSS1 0x42 /* Task segment selector for CPU 0 */
+#define GD_TSS2 0x46 /* Task segment selector for CPU 0 */
+#define GD_TSS3 0x50 /* Task segment selector for CPU 0 */
 
 /*
  * Virtual memory map:                                Permissions
@@ -103,6 +106,9 @@
 /* Kernel main core base address in physical memory
  * (this *should* be defined as a literal number) */
 #define KERN_START_OFFSET 0x01600000
+
+#define START_AP_PTR 0x0
+#define VIRT_TO_PHYS_AP(vaddr, vaddr_base, paddr_base) ((vaddr) - (vaddr_base) + (paddr_base))
 
 /* At IOPHYSMEM (640K) there is a 384K hole for I/O.  From the kernel,
  * IOPHYSMEM can be addressed at KERN_BASE_ADDR + IOPHYSMEM.  The hole ends

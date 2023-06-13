@@ -5,7 +5,7 @@
 
 #include <inc/env.h>
 
-#define NCPU 1
+//#define NCPU 1
 
 /* All environments */
 extern struct Env *envs;

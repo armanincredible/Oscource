@@ -13,6 +13,12 @@ SECTIONS
     obj/kern/bootstrap.o (.text .data .bss)
   }
 
+  /*. = 0x8000;
+
+  .apboot : {
+    obj/kern/ap.o (.text .data .bss)
+  }*/
+
   . = @KERNSTART@;
 
   /* AT(...) gives the load address of this section, which tells
@@ -20,6 +26,7 @@ SECTIONS
   .text : AT(0x01600000) {
     __text_start = .;
     *(EXCLUDE_FILE(*obj/kern/bootstrap.o) .text .stub .text.* .gnu.linkonce.t.*)
+    //*(EXCLUDE_FILE(*obj/kern/ap.o) .text .stub .text.* .gnu.linkonce.t.*)
     . = ALIGN(8);
     __text_end = .;
 
@@ -27,6 +34,7 @@ SECTIONS
 
     __rodata_start = .;
     *(EXCLUDE_FILE(*obj/kern/bootstrap.o) .rodata .rodata.* .gnu.linkonce.r.* .data.rel.ro.local)
+    //*(EXCLUDE_FILE(*obj/kern/ap.o) .rodata .rodata.* .gnu.linkonce.r.* .data.rel.ro.local)
     /* Ensure page-aligned segment size */
     . = ALIGN(0x1000);
     __rodata_end = .;
@@ -37,6 +45,7 @@ SECTIONS
   .data : ALIGN(0x1000) {
     __data_start = .;
     *(EXCLUDE_FILE(obj/kern/bootstrap.o) .data .got.plt .data.* .got)
+    //*(EXCLUDE_FILE(obj/kern/ap.o) .data .got.plt .data.* .got)
     . = ALIGN(8);
     __data_end = .;
 
@@ -61,6 +70,7 @@ SECTIONS
   .bss : ALIGN(0x1000) {
     __bss_start = .;
     *(EXCLUDE_FILE(obj/kern/bootstrap.o) .bss)
+    //*(EXCLUDE_FILE(obj/kern/ap.o) .bss)
     *(COMMON)
     /* Ensure page-aligned segment size */
     . = ALIGN(0x1000);

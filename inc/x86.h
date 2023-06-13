@@ -226,6 +226,13 @@ read_rsp(void) {
 }
 
 static inline uint64_t __attribute__((always_inline))
+write_rsp(uint64_t rsp) {
+    asm volatile("movq %0, %%rsp"
+                 ::"r"(rsp));
+    return rsp;
+}
+
+static inline uint64_t __attribute__((always_inline))
 read_rip(void) {
     uint64_t rip;
     asm volatile("call 1f; 1: popq %0"

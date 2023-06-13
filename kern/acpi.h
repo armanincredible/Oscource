@@ -105,11 +105,20 @@ typedef struct {
     uint64_t ph_ptr_loc_apic;
 } MADT_RECORD_ADDRESS_OVERRIDE;
 
+//Entry Type 0x10: Wakeup Structure
+typedef struct {
+    MADT_RECORD_HEADER header;
+    uint16_t MailBoxVersion;
+    uint32_t Reserved;
+    uint64_t MailBoxAddress;
+} MADT_RECORD_WAKEUP;
+
 enum
 {
     APIC_TYPE_LOCAL_APIC,
     APIC_TYPE_IO_APIC,
-    APIC_TYPE_ADDRESS_OVERRIDE = 5
+    APIC_TYPE_ADDRESS_OVERRIDE = 5,
+    TYPE_WAKEUP_STRUCTURE = 0x10
 };
 
 #define HPET_LEG_RT_CAP         (1 << 15)

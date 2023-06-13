@@ -112,6 +112,7 @@ int map_region(struct AddressSpace *dspace, uintptr_t dst, struct AddressSpace *
 void modify_region(struct AddressSpace *dspace, uintptr_t dst, uintptr_t size, int flags);
 void unmap_region(struct AddressSpace *dspace, uintptr_t dst, uintptr_t size);
 void init_memory(void);
+void add_ap_stacks_mapping();
 void release_address_space(struct AddressSpace *space);
 struct AddressSpace *switch_address_space(struct AddressSpace *space);
 int init_address_space(struct AddressSpace *space);
@@ -131,6 +132,7 @@ extern struct AddressSpace kspace;
 extern struct AddressSpace *current_space;
 extern struct Page root;
 extern char bootstacktop[], bootstack[];
+extern char aprealbootstacktop[], aprealbootstack[];
 extern size_t max_memory_map_addr;
 
 /* This macro takes a kernel virtual address -- an address that points above

@@ -18,6 +18,7 @@
 #include <kern/kclock.h>
 #include <kern/kdebug.h>
 #include <kern/traceopt.h>
+#include <kern/cpu.h>
 
 void
 timers_init(void) {
@@ -143,10 +144,9 @@ i386_init(void) {
 
     /* Lab 6 memory management initialization functions */
     init_memory();
-    
-    detect_cores();
-    smp_init();
+
     pic_init();
+    smp_init();
     timers_init();
 
     /* Framebuffer init should be done after memory init */

@@ -82,14 +82,33 @@ sys_exit:
 
 #endif
 
+.globl apentry
+apentry:
+    # Set up kernel stack
+    leaq aprealbootstacktop(%rip),%rsp
+    # subq %rsp, (KERN_STACK_SIZE + KERN_STACK_GAP)
+    xor %ebp, %ebp
+
+    # Invoke C code
+    call ap64c
+    # Should never reach this place
+    jmp .
+
 
 .data
+
+.p2align PAGE_SHIFT
+.globl aprealbootstack
+aprealbootstack:
+.space KERN_STACK_SIZE
+.globl aprealbootstacktop
+aprealbootstacktop:
 
 # Allocate boot stack forcing page alignment.
 .p2align PAGE_SHIFT
 .globl bootstack
 bootstack:
-.space KERN_STACK_SIZE
+.space 8 * (KERN_STACK_SIZE + KERN_STACK_GAP)
 .globl bootstacktop
 bootstacktop:
 

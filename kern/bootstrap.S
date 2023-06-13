@@ -5,6 +5,7 @@
 
 # Normal x86-64 4-level translation looks like CR3->PML4->PDP->PD->PT
 # We set the PTE_MBZ bits in PDE (pgdir) to skip the last step
+.global pml4
 .set pml4,   pml4phys
 .set pdpt1,  pml4 + PAGE_SIZE
 .set pdpt2,  pml4 + 2*PAGE_SIZE
@@ -72,6 +73,11 @@ _head64:
     # Transition to high mem entry code and pass LoadParams address
     movabs $entry, %rax
     movq %r12, %rcx
+    jmpq *%rax
+
+.globl apboottoc
+apboottoc:
+    movabs $apentry, %rax
     jmpq *%rax
 
 .data
